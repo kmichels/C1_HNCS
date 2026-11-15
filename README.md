@@ -105,9 +105,6 @@ Earlier versions (E1–E3) are in the git history.
 
 ## Credits
 
-- 33 sample raws from [DPReview's Hasselblad X2D II 100C sample gallery](https://www.dpreview.com/sample-galleries/4239298554/hasselblad-x2d-ii-100c-sample-gallery)
-  were used for fitting. They are not redistributed here; download them from DPReview, under its
-  terms.
 - [blog.tonalphoto.com](https://blog.tonalphoto.com/) for the Lightroom profile that inspired this,
   and for its measurements of Phocus (HNCS and white balance, edge brightening, BaselineExposure,
   the Modify dialog's white-balance copying).
