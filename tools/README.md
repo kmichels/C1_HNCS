@@ -107,7 +107,9 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 
 | Tool | Purpose |
 |---|---|
-| `make_synthetic_raw.py HOST.3fr OUT.3fr [--levels 33 --part i/N] [--neutral-from RAW] [--flat L]` | Patch grid (or a flat grey) in a copy of a real raw; `--neutral-from` sets white balance |
+| `make_synthetic_raw.py HOST.3fr OUT.3fr [--levels 33 --part i/N] [--neutral-from RAW \| --neutral r,g,b] [--flat L]` | Patch grid (or a flat grey) in a copy of a real raw; `--neutral-from` / `--neutral` set white balance |
+| `save_synth_pairs.py PATCHES C1_PROBE.tif PHOCUS.tif OUT.npz` | Save a grid's pairs (the `fit/synthetic/pairs/` format) so the renders can be deleted |
+| `fit_synthetic.py OUT --gainmap MAP --pairs PAIRS.npz …` | Fit a table from saved pairs (or `--synth` from renders) |
 | `applescript/render_probe_all.applescript` and the per-file probe script pattern | Capture One probe renders (camera RGB per patch) |
 | `synth_compare.py` | Compare Phocus exports of synthetic files that share a patch layout |
 | `makernote_transplant.py TARGET DONOR OUT TAGS` | Copy maker-note entries between raws in place (bisection) |

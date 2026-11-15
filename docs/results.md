@@ -100,8 +100,8 @@ Rendering the same 33 DPReview raws at As Shot instead of Daylight:
 - The three tungsten-lit frames (As Shot about 3400 K) score **1.6–2.1** at As Shot, against 0.5–0.7
   when rendered at Daylight.
 
-So HNCS E4 covers daylight-range white balance. Tungsten needs its own profile
-([open questions](open-questions.md#2-tungsten-white-balance-needs-its-own-profile)).
+So HNCS E4 covers daylight-range white balance. Tungsten now has its own E5 profiles: 1.0–1.7 on those
+frames (research log, Finding 21).
 
 ### BaselineExposure
 

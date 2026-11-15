@@ -6,6 +6,7 @@ and Phocus's Lab. Phocus's edge brightening (lens corrections off) is removed pe
 measured lift, as for real pairs.
 
 usage: python fit_synthetic.py OUT.npz --lift c2,c4 --synth NAME:PATCHES.npz:C1_RENDER.tif:PHOCUS.tif [...]
+         [--pairs PAIRS.npz ...]   (saved pairs, e.g. fit/synthetic/pairs/*.npz, instead of renders)
          [--real PAIRS_DIR:FRAME,FRAME] [--test PAIRS_DIR:FRAME,FRAME] [--lam-s 1.0] [--compare LUT.npz]
 """
 import argparse
@@ -26,6 +27,7 @@ ap.add_argument("out")
 ap.add_argument("--lift", default="0,0")
 ap.add_argument("--gainmap", default=None, help="Phocus gain map (flat_gain.py, corrections off, same host): replaces --lift")
 ap.add_argument("--synth", action="append", default=[])
+ap.add_argument("--pairs", action="append", default=[], help="saved synthetic pairs (save_synth_pairs.py)")
 ap.add_argument("--real", action="append", default=[])
 ap.add_argument("--test", action="append", default=[])
 ap.add_argument("--lam-s", type=float, default=1.0)
@@ -44,13 +46,21 @@ def patch_means(img, pos, P):
 
 
 devs, labs = [], []
-for spec in a.synth:
-    name, pz, c1p, php = spec.split(":")
-    z = np.load(pz)
-    pos, P, (ch, cw) = z["pos"], int(z["patch"]), z["active"]
-    c1 = patch_means(tifffile.imread(c1p)[..., :3].astype(np.float64) / 65535, pos, P)
-    ph = patch_means(tifffile.imread(php)[..., :3].astype(np.float64) / 65535, pos, P)
-    lin = np.clip(romm_decode(c1), 0, None)
+specs = [("synth", s_) for s_ in a.synth] + [("pairs", s_) for s_ in a.pairs]
+for kind, spec in specs:
+    if kind == "synth":
+        name, pz, c1p, php = spec.split(":")
+        z = np.load(pz)
+        pos, P, (ch, cw) = z["pos"], int(z["patch"]), z["active"]
+        c1 = patch_means(tifffile.imread(c1p)[..., :3].astype(np.float64) / 65535, pos, P)
+        ph = patch_means(tifffile.imread(php)[..., :3].astype(np.float64) / 65535, pos, P)
+        lin = np.clip(romm_decode(c1), 0, None)
+    else:
+        name = os.path.basename(spec).replace(".npz", "")
+        z = np.load(spec)
+        pos, P, (ch, cw) = z["pos"], int(z["patch"]), z["active"]
+        ph = z["phocus_prophoto"]
+        lin = z["device_c1_lin"].copy()
     r = np.hypot(pos[:, 0] + P / 2 - ch / 2, pos[:, 1] + P / 2 - cw / 2) / np.hypot(ch / 2, cw / 2)
     if a.gainmap:
         gm = np.load(a.gainmap)

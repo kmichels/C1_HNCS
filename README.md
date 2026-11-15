@@ -23,7 +23,8 @@ This is a personal project. It's not affiliated with Hasselblad or Capture One.
 | Whole frame vs Phocus with corrections on (28P / 35-100) | 2.23 / 0.94 | **1.51 / 0.73** |
 | Setup | copy two files, restart | the same, plus one LCC per lens |
 
-E5 exists for the XCD 28P and XCD 35-100. For other lenses use E4.
+E5 exists for the XCD 28P and XCD 35-100, in a daylight and a tungsten version. For other lenses use
+E4.
 
 ## Install
 
@@ -57,7 +58,8 @@ Put the reference in your session or catalog, select it, and choose **Create LCC
 Calibration tool.
 
 **Per image:**
-1. Apply **HNCS E5 28P LCC + Light Falloff 120** (or the 35-100 one).
+1. Apply **HNCS E5 28P LCC + Light Falloff 120** (or the 35-100 one). For tungsten light, use the
+   **… LCC Tungsten** version.
 2. Copy the LCC from the matching reference to your images (Copy/Apply Adjustments, LCC), with
    **Color Cast on** and **Uniform Light off**.
 
@@ -75,8 +77,10 @@ only together with the LCC. Without it they render slightly warm.
   body and Capture One ignores. The profiles match the body they were made on; another body can differ
   by about 1 b*. `tools/body_gains.py YOUR_RAW.3fr` prints the input gain that adapts a profile to your
   body (pass it to `tools/write_profile.py --input-gain`).
-- **White balance.** Phocus's colour shifts with white balance. The profiles are an average over
-  about 4700–6300 K. At tungsten (about 3400 K) they're 1.6–2.1 ΔE00 off.
+- **White balance.** Phocus's colour shifts with white balance. The main profiles are an average over
+  about 4700–6300 K. For tungsten-lit frames (about 3100–4200 K) use the **E5 … LCC Tungsten** styles
+  instead: on real tungsten photos they're 1.0–1.7 ΔE00 from Phocus, against 2.0–2.8 with the daylight
+  ones. The 28P tungsten profile is checked only on synthetic data.
 - **XCD 28P at f/5.6 and narrower.** Phocus corrects vignetting more strongly than Capture One's Light
   Falloff 120, so the edges stay darker than Phocus (it matches at f/4).
 - **Variation between frames.** Some frames come out 0.5–1 L* darker than Phocus overall.
@@ -105,9 +109,9 @@ The step-by-step notes are in [docs/research-log.md](docs/research-log.md); the 
 ## Repository layout
 
 ```
-profiles/   HNCS E4 (all lenses); HNCS E5 28P LCC, HNCS E5 35-100 LCC
+profiles/   HNCS E4 (all lenses); HNCS E5 28P LCC, HNCS E5 35-100 LCC, and a Tungsten version of each
 styles/     a plain and a "+ Light Falloff 120" style for each profile
-fit/        lut_e4.npz, lut_e5_28p.npz, lut_e5_35-100.npz   fitted 33³ tables before ICC encoding
+fit/        lut_e4.npz, lut_e5_*.npz (daylight and tungsten)   fitted 33³ tables before ICC encoding
             lcc/          colour shading maps for the LCC references, and the profiles' input gains
             synthetic/    Phocus's renders of the synthetic patches (camera RGB → Lab) and flat-field maps
             configs/      frames and settings of the E4 fit
@@ -121,7 +125,8 @@ Earlier versions (E1–E3) are in the git history.
 
 - **Edit a table and re-export.** Each `fit/lut_*.npz` holds a fitted table (`lut`, 33³ × Lab):
   `python tools/write_profile.py fit/lut_e5_28p.npz "HNCS Mine" out/`
-- **Refit from the synthetic data** in `fit/synthetic/`, no Phocus needed.
+- **Refit from the synthetic data** in `fit/synthetic/`, no Phocus needed:
+  `python tools/fit_synthetic.py out.npz --gainmap fit/synthetic/flat_maps/F35aoff.npz --pairs fit/synthetic/pairs/HNCSgridA0.npz …`
 - **Measure your own camera or another lens** with synthetic raws: see [tools/README.md](tools/README.md).
 
 ## Credits

@@ -7,6 +7,7 @@ AsShotNeutral, spaced evenly in L*-like steps per channel. A mapping of patch ->
 is written next to the raw as <name>.patches.npz.
 
 usage: python make_synthetic_raw.py HOST.3fr OUT.3fr [--levels 22] [--patch 32] [--scale 0.92] [--seed 0] [--part i/N]
+       [--neutral-from RAW | --neutral r,g,b] [--flat L]
   --part i/N puts only every N-th colour of the (shuffled) grid in this file, so a dense grid can be
   spread over N files that stay near the frame centre.
 """
@@ -33,6 +34,7 @@ ap.add_argument("--uid", default="HNCSSYNTH0000001")
 ap.add_argument("--part", default="0/1")
 ap.add_argument("--flat", type=float, default=None, help="write a uniform grey at this L* instead of patches")
 ap.add_argument("--neutral-from", default=None, help="use another raw's As Shot white balance (written to IFD0 AsShotNeutral and the maker-note copy 0xc628)")
+ap.add_argument("--neutral", default=None, help="As Shot white balance as camera-RGB neutral r,g,b (g = 1), written like --neutral-from")
 a = ap.parse_args()
 
 with tifffile.TiffFile(a.host) as t:
@@ -55,6 +57,11 @@ nb_override = None
 if a.neutral_from:
     with tifffile.TiffFile(a.neutral_from) as t2:
         nb_override = t2.pages[0].tags["AsShotNeutral"].value
+    n = nb_override
+    neutral = np.array([n[0] / n[1], n[2] / n[3], n[4] / n[5]])
+if a.neutral:
+    vals = [float(v) for v in a.neutral.split(",")]
+    nb_override = tuple(x for v in vals for x in (65536, int(round(65536 / v))))
     n = nb_override
     neutral = np.array([n[0] / n[1], n[2] / n[3], n[4] / n[5]])
 assert raw.nbytes == nbytes

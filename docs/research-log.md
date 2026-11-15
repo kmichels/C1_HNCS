@@ -676,3 +676,45 @@ unchanged; its items are "Hasselblad RGB" and "Hasselblad L\* RGB". In `HBRawCor
 - All L\* spaces share one grey curve, different from the default's (more midtone contrast).
 - Moving Standard's curve into these spaces doesn't reproduce them (Finding 18), so the colour stage also
   depends on the working space, as the colour-correction filter's signature (which takes it) suggests.
+
+## 2026-11-15 (round 4): building on the findings
+
+### Finding 21: tungsten profiles
+
+**In plain terms:** Profiles for tungsten light, fitted the same way as E5 but on synthetic grids at
+four tungsten white balances (about 3100–4200 K). On three real tungsten-lit photos they halve the
+error of the daylight profiles. Use them by hand for tungsten-lit frames; Capture One can't switch
+profiles by white balance.
+
+- Grids: the E5 hosts (35-100 and 28P, owner's body), 22-level grids, As Shot neutral set with
+  `make_synthetic_raw.py --neutral r,g,b` along the log-neutral line from the host's daylight neutral
+  (0.368, 1, 0.589) through a DPReview tungsten frame's (0.569, 1, 0.445) at t = 0.5, 0.75, 1.0, 1.25.
+  Capture One reads them as 4175 K, 3747 K, 3395 K and 3105 K (tints −3 to −12).
+- Pairs saved with `tools/save_synth_pairs.py`; fitted with `fit_synthetic.py --pairs` (new option: fit
+  from saved pairs). Refitting E5c from its saved pairs reproduces the shipped table exactly, which
+  checks the path.
+- Synthetic grids, 35-100, median ΔE00 moderate | all colours:
+
+| grid (Capture One reading) | E5 (daylight) | E5 tungsten |
+|---|---|---|
+| warmest daylight grid (R/B 0.76) | 1.00 \| 2.13 | 2.05 \| 3.64 |
+| 4175 K | 1.81 \| 3.32 | 1.26 \| 2.51 |
+| 3747 K | 2.48 \| 4.42 | 0.53 \| 1.52 |
+| 3395 K | 3.05 \| 5.42 | 0.49 \| 1.38 |
+| 3105 K | 3.92 \| 6.81 | 1.24 \| 2.69 |
+
+- Real tungsten-lit photos (DPReview, 35-100, As Shot, other body with its factory gains applied),
+  median ΔE00 at the frame centre (r < 0.2):
+
+| frame | E5 (daylight) | E5 tungsten (4 WBs) | tungsten fit on 2 WBs (3400–3750 K) |
+|---|---|---|---|
+| 2462814331 | 1.95 | **1.71** | 1.76 |
+| 5727340084 | 2.77 | **1.07** | 1.21 |
+| 8671272247 | 2.75 | **1.03** | 1.13 |
+| mean | 2.49 | **1.27** | 1.37 |
+
+- The fit's own error is larger than E5's (2.1 vs about 1.5 for all colours) because Phocus changes
+  colour across the 1000 K range more than within daylight; a narrower fit did worse on real photos.
+- The 28P tungsten profile is validated only on synthetic grids (no real 28P tungsten frames).
+- Files: `profiles/… E5 28P LCC Tungsten.icm`, `… E5 35-100 LCC Tungsten.icm` (with the same LCC input
+  gains as E5), four styles, `fit/lut_e5_*_tungsten.npz`, pairs in `fit/synthetic/pairs/HNCStung*.npz`.

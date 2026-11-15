@@ -22,12 +22,13 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Factory gains: a green and a blue gain; no lens dependence, slight white-balance dependence;
   the two combine; zero acts like ~2.1 (Finding 16).
 - [x] Focus distance on the 35-100, and the 28P at f/5.6 and f/8: none (Finding 17).
+- [ ] Highlight recovery: why people find Phocus better with highlights (question 6).
 - [ ] Focus distance on the XCD 55V and 90V, where blog.tonalphoto.com saw it (needs raws), and close
   focus on the 35-100 (nearest matched frame was 1.9 m).
 - [ ] Question 1 (28P edges at f/5.6+), question 4 (per-frame lightness), question 5 (shading mechanism).
 
 **Building**
-- [ ] Tungsten profile (question 2).
+- [x] Tungsten profiles (Finding 21). Still to check: the 28P one on real tungsten frames.
 - [ ] Pre-processing step for 3FRs before Capture One (question 3).
 - [ ] Automate per-image settings by writing Capture One's sidecar, if its format can be worked out.
 - [ ] Refresh the README contact sheet with E5.
@@ -53,10 +54,14 @@ strength ("LCC uniform light amount"), or one LCC per aperture. Capture One norm
 brightness to its mean too, so the overall exposure shift would need compensating, like the colour
 shift is.
 
-## 2. Tungsten white balance
+## 2. Tungsten white balance (largely done)
 
 Phocus's colour depends on white balance. E5 averages over about 4700–6300 K. Tungsten-lit frames
-rendered at their As Shot white balance (about 3400 K) are 1.6–2.1 ΔE00 off.
+rendered at their As Shot white balance (about 3400 K) are 1.6–2.1 ΔE00 off with E5, and 1.0–1.7 with
+the E5 Tungsten profiles (Finding 21). Open: the 28P tungsten profile on real frames; mixed light and
+the range between the daylight and tungsten profiles (about 4200–4700 K).
+
+The notes below are how it was built.
 
 **How to build a tungsten profile.** Make synthetic grids with tungsten white balances (write a
 tungsten frame's AsShotNeutral into the grid raws; `make_synthetic_raw.py --neutral-from`), fit
@@ -96,6 +101,29 @@ shading" files in the camera firmware's lens database (reported by blog.tonalpho
 applied whether lens corrections are on or off, and the brightness lift it brings with corrections off
 is the "edge brightening" earlier versions removed by hand. No focus dependence on the 28P or the 35-100
 (Findings 12 and 17). The 28P shows slightly more colour at f/4 than at f/8 in the extreme corners.
+
+## 6. Highlight recovery
+
+People often say Phocus handles highlights better than other raw converters. What the findings so far
+say about it:
+- **The tone curve's shoulder.** HNCS's curve is applied to each channel in Hasselblad RGB (Finding 14)
+  and rolls off slowly: L\* 90 at +1.2 EV over middle grey, 97 at +1.7, 99 at +2.0. A per-channel
+  curve on a fairly small space eases bright colours toward white rather than clipping them to a hue.
+  The profiles carry this curve, so Capture One with HNCS gets the same shoulder up to the raw's clip
+  point.
+- **Compression after lens correction.** Phocus's vignetting gain shrinks near clipping (Finding 12),
+  so brightened corners roll off instead of clipping. Capture One's Light Falloff may not do this.
+- **A highlight stage in the sidecar.** Phocus's settings include `HighlightDesaturation` (default 50),
+  `HighlightRecovery` and `AutoHighlight` (default 0), so there is a separate step for near-white
+  colours.
+- **Not measured.** Every synthetic patch so far stayed below about 92% of the raw's white level, and
+  fits excluded near-clipped data. What Phocus does when one or two raw channels clip (reconstructing
+  them from the others, which is usually what "highlight recovery" means) is untested, in both apps.
+
+**How to test.** Synthetic patches with one or two channels pushed past the white level, across hues, and
+gradients that run through clipping; render in Phocus at the defaults and with `HighlightRecovery` and
+`HighlightDesaturation` varied; render the same files in Capture One (Highlight slider 0 and its
+recovery). Then compare on real frames with clipped skies or speculars.
 
 ## Resolved
 
