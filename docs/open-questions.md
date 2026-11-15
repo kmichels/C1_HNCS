@@ -29,7 +29,9 @@ Everything still open, in one place. Details for the numbered questions are belo
 
 **Building**
 - [x] Tungsten profiles (Finding 21). Still to check: the 28P one on real tungsten frames.
-- [ ] Pre-processing step for 3FRs before Capture One (question 3).
+- [x] Pre-processing step: prototype works, 0.3–0.8 ΔE00 over the whole frame (Finding 22).
+- [ ] Pre-processing: make maps automatically (synthetic flat → Phocus hot folder → map) for any lens
+  state not yet in `fit/preprocess_maps/`; a headroom option for bright corners; a batch workflow.
 - [ ] Automate per-image settings by writing Capture One's sidecar, if its format can be worked out.
 - [ ] Refresh the README contact sheet with E5.
 - [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`
@@ -40,6 +42,8 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [ ] Write up the findings for blog.tonalphoto.com's author.
 
 ## 1. XCD 28P edge brightness at f/5.6 and narrower
+
+Solved by pre-processing (Finding 22) for lens states with a map; still open for the LCC route.
 
 With lens corrections on, Phocus's vignetting correction and Capture One's Light Falloff scale with
 aperture differently. On synthetic flat fields, Light Falloff 120 minus Phocus at r 0.8–0.9:
@@ -72,6 +76,9 @@ Shortcut: within daylight, white balance changes Phocus's colour matrix in a ste
 E5 plus an extrapolated matrix may get most of the way before refining on tungsten grids.
 
 ## 3. A pre-processing step before Capture One
+
+Prototype done and measured (Finding 22): `tools/preprocess_3fr.py`. Open: automatic maps for new lens
+states, a headroom option, Capture One sidecars. The original plan:
 
 X2D II raws are uncompressed and both apps accept edited copies, so a converter could write corrected
 copies of 3FRs before import:
@@ -111,8 +118,9 @@ say about it:
   curve on a fairly small space eases bright colours toward white rather than clipping them to a hue.
   The profiles carry this curve, so Capture One with HNCS gets the same shoulder up to the raw's clip
   point.
-- **Compression after lens correction.** Phocus's vignetting gain shrinks near clipping (Finding 12),
-  so brightened corners roll off instead of clipping. Capture One's Light Falloff may not do this.
+- **Not compression after lens correction.** Phocus's vignetting gain looked smaller in brighter images
+  (Finding 12), but that was Capture One's raw response (Finding 22): Phocus's gain is a fixed raw
+  multiplier.
 - **A highlight stage in the sidecar.** Phocus's settings include `HighlightDesaturation` (default 50),
   `HighlightRecovery` and `AutoHighlight` (default 0), so there is a separate step for near-white
   colours.

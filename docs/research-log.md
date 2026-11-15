@@ -367,8 +367,8 @@ BaselineExposure +0.764) and B0000926 (28P f/4, ∞, BaselineExposure 0); green 
 - Transplanting every same-size maker-note entry from the far file: no change within r ≤ 0.6 (corners
   of the near file clip at +0.76 EV, so not comparable there).
 - The correction's effective gain is ~0.06 stop smaller at r 0.6 when the image is 0.76 EV brighter.
-  This is consistent with the blog's note that the gain shrinks near clipping (highlight compression
-  after the gain).
+  (Correction, Finding 22: that's Capture One's raw response, which the gain map is measured through;
+  as raw gains the two are identical.)
 - The blog's focus-distance dependence was measured on the XCD 55V and 90V. This doesn't contradict it,
   but exposure differences between frames (BaselineExposure) can look like a focus effect.
 
@@ -718,3 +718,59 @@ profiles by white balance.
 - The 28P tungsten profile is validated only on synthetic grids (no real 28P tungsten frames).
 - Files: `profiles/… E5 28P LCC Tungsten.icm`, `… E5 35-100 LCC Tungsten.icm` (with the same LCC input
   gains as E5), four styles, `fit/lut_e5_*_tungsten.npz`, pairs in `fit/synthetic/pairs/HNCStung*.npz`.
+
+### Finding 22: pre-processed raws match Phocus across the whole frame
+
+**In plain terms:** Writing Phocus's lens correction and colour shading straight into a copy of the raw,
+then rendering it in Capture One with the plain E5 profile and no Light Falloff or LCC, matches Phocus
+(lens corrections on) to 0.3–0.8 ΔE00 over the whole frame, corners included: about twice as close as
+the LCC route, and the 28P's aperture problem disappears. The catch that made the first try fail:
+Capture One's raw response isn't proportional in the shadows, so a gain measured in its colour scale
+has to be converted before it's written into the raw. The same effect explains Finding 12's
+"correction shrinks for brighter images": Phocus's vignetting correction is a fixed multiplier on the
+raw values.
+
+**Method.**
+1. For each test frame, a synthetic L\* 30 flat with the frame's own metadata (`make_synthetic_raw.py
+   --flat 30`), rendered by Phocus with `LensCorrection` 4; `flat_gain.py` gives the per-channel gain
+   map in Capture One's camera-RGB scale.
+2. `make_preprocess_map.py` converts it to raw gains through Capture One's response
+   (`fit/c1_response.npz`, measured from the E5 grids' nominal vs probe values) at the flat's level and
+   BaselineExposure, and saves it by lens state (`fit/preprocess_maps/XCD28P_28mm_f8.0.npz` …).
+3. `preprocess_3fr.py IN OUT --maps fit/preprocess_maps` multiplies each raw channel by its gain
+   (interpolated per photosite) in a copy.
+4. Capture One: style "HNCS E5 … (pre-processed)" = plain E5 profile (no LCC compensation), Linear
+   Response, Light Falloff 0. Capture One's default Light Falloff for these lenses is 100, so the style
+   has to set 0.
+
+**Capture One's response** (white-balanced raw, as a fraction of 0.92 × white − black, to the camera RGB
+a profile receives): ratio 0.17 at 0.01, 0.64 at 0.1, 0.74 at 0.4, 0.75 from 0.6 up (affine above 0.05:
+0.761 × raw − 0.0096). Applying the map to raw values directly overshot (corrected flat L\* 49.8 vs
+Phocus 45.6 at r 0.6; real frames dL +4 to +6 at the edges).
+
+**Check on flats.** Corrected flat in Capture One vs Phocus's corrections-on flat, dL\* from centre to
+r 0.9: +0.02 to +0.07 (28P f/8, BaselineExposure 0) and −0.04 to −0.10 (28P f/5.6, BaselineExposure
++0.458).
+
+**Real photos**, whole frame (r < 0.95) vs Phocus with lens corrections on, median ΔE00:
+
+| frame | E4 + LF 120 | E5 LCC + LF 120 + colour LCC (Finding 10) | **pre-processed + plain E5** |
+|---|---|---|---|
+| 28P B0000901 (f/16) | 2.19 | 1.56 | **0.72** |
+| 28P B0000917 (f/5.6) | 2.11 | 1.56 | **0.80** |
+| 28P B0000931 (f/8) | 2.37 | 1.43 | **0.48** |
+| 35-100 B0000623 (35 mm f/11) | 1.08 | 0.76 | **0.43** |
+| 35-100 B0000679 (35 mm f/11) | 1.10 | 0.69 | **0.31** |
+| 35-100 B0000702 (50 mm f/8) | 0.65 | 0.73 | **0.65** |
+| mean 28P / 35-100 | 2.23 / 0.94 | 1.51 / 0.73 | **0.67 / 0.47** |
+
+- By radius the error is flat: 28P 0.4–0.9 and dL within ±0.3 from centre to r 0.8–1.0 (was dL −3 to −7).
+  B0000702's remaining 0.65 is a uniform +0.5 L\*, the per-frame lightness offset of open question 4.
+- Raw gains (green, stops) at r 0.4 / 0.6 / 0.8 / 0.9: 28P f/5.6 +0.37 / +0.84 / +1.64 / +2.08; f/8
+  +0.38 / +0.84 / +1.50 / +1.91; f/16 +0.39 / +0.84 / +1.50 / +1.89; 35-100 35 mm f/11 +0.12 / +0.30 /
+  +0.61 / +0.76; 50 mm f/8 +0.09 / +0.20 / +0.41 / +0.49.
+- Highlight headroom: clipped photosites 0.0% on most frames, 0.1% on B0000702, 2.3% on B0000901 (bright
+  sky in the f/16 corners, up to 5.4× gain).
+- Finding 12 revisited: converted to raw gains, near/far focus and BaselineExposure 0/+0.764 give the
+  same correction to within 0.002 stop at r 0.4–0.6 (0.015 at r 0.7). The 0.06-stop difference reported
+  there was Capture One's response, not Phocus compressing its gain.

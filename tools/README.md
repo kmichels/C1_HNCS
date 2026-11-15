@@ -118,6 +118,8 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `compare_gain_maps.py C1_FLAT_RENDER PHOCUS_MAP` | Capture One's spatial gain (Light Falloff, LCC) vs Phocus's |
 | `make_lcc_raw.py HOST OUT --colour MAP` | LCC reference raw that reproduces a colour shading map |
 | `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
+| `preprocess_3fr.py IN OUT --maps DIR` | Corrected copy of a 3FR with Phocus's lens correction and colour shading in the raw ([pre-processing](#pre-processing)) |
+| `make_preprocess_map.py FLAT_GAIN FLAT.3fr DIR` | Raw-gain map for a lens state, from Phocus's render of a synthetic flat |
 | `body_gains.py RAW` | Read a body's factory calibration gains and print the profile input gain for that body |
 | `hncs_structure.py LUT GAINMAP PAIRS…` | Tone curve, model comparison, hue constancy and gamut from synthetic pairs |
 | `hncs_wb_structure.py LUT GAINMAP REF_PAIRS PAIRS…` | What changes with white balance: gains, a 3×3 before the table, or a 3×3 after |
@@ -125,3 +127,17 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 
 `fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
 `fit/synthetic/flat_maps/` the flat-field gain maps, so E5 can be refitted without Phocus.
+
+## Pre-processing
+
+To make a map for a lens state that `fit/preprocess_maps/` doesn't have (lens, focal length, aperture;
+focus distance and exposure don't matter):
+
+```sh
+python tools/make_synthetic_raw.py ANY_RAW_WITH_THAT_LENS_STATE.3fr flat.3fr --flat 30
+# render flat.3fr in Phocus with lens corrections on (sidecar LensCorrection 4) via the hot folder above
+python tools/flat_gain.py fit/lut_e5_28p.npz PHOCUS_EXPORT.tif flat_gain.npz        # or lut_e5_35-100
+python tools/make_preprocess_map.py flat_gain.npz flat.3fr fit/preprocess_maps
+```
+
+Then `preprocess_3fr.py IN OUT --maps fit/preprocess_maps` picks the map from the file's metadata.

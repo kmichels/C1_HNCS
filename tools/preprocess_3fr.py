@@ -1,0 +1,106 @@
+"""Write a corrected copy of an X2D II 3FR for Capture One: Phocus's spatial processing (vignetting
+correction with lens corrections on, and its colour shading) baked into the sensor data, and optionally
+the per-body factory-gain normalisation. Render the copy with an "HNCS E5 … (pre-processed)" style:
+plain E5 profile, Light Falloff 0, no LCC. The original is only read.
+
+The map is a raw-gain map from make_preprocess_map.py for the same lens state (lens, focal length,
+aperture): either given with --map, or picked from a folder of maps with --maps. Each raw channel is
+multiplied by its gain, interpolated from the map's block centres to every photosite of the active area.
+Values that would exceed the white level are clipped and counted (brightening corners uses up
+highlight headroom there).
+
+usage: python preprocess_3fr.py IN.3fr OUT.3fr (--map MAP.npz | --maps DIR) [--body-gains [--ref 2.600,2.260]]
+"""
+import argparse
+import os
+import shutil
+import sys
+
+import numpy as np
+import tifffile
+from scipy.interpolate import RegularGridInterpolator
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from make_preprocess_map import lens_state  # noqa: E402
+
+ap = argparse.ArgumentParser()
+ap.add_argument("inp"); ap.add_argument("out")
+g_ = ap.add_mutually_exclusive_group(required=True)
+g_.add_argument("--map")
+g_.add_argument("--maps", help="folder of make_preprocess_map.py maps; picks the one for this file's lens state")
+ap.add_argument("--body-gains", action="store_true", help="also normalise the body to the reference factory gains")
+ap.add_argument("--ref", default="2.600,2.260")
+ap.add_argument("--uid", default=None)
+a = ap.parse_args()
+if os.path.exists(a.out):
+    sys.exit(f"{a.out} exists; not overwriting")
+if os.path.realpath(a.out) == os.path.realpath(a.inp):
+    sys.exit("output must differ from input")
+
+mp = a.map
+if a.maps:
+    key = lens_state(a.inp)[0]
+    mp = os.path.join(a.maps, key + ".npz")
+    if not os.path.exists(mp):
+        sys.exit(f"no map for {key} in {a.maps}: make one from this raw (see tools/README.md, pre-processing)")
+
+with tifffile.TiffFile(a.inp) as t:
+    p0 = t.pages[0]
+    sp = p0.pages[0]
+    raw = sp.asarray()
+    off, nbytes = sp.dataoffsets[0], sp.databytecounts[0]
+    black = int(sp.tags["BlackLevel"].value[0])
+    white = int(np.min(sp.tags["WhiteLevel"].value))
+    cx0, cy0 = sp.tags["DefaultCropOrigin"].value
+    cw, ch = sp.tags["DefaultCropSize"].value
+    uid_tag = p0.tags["RawDataUniqueID"]
+    uid_off, uid_len = uid_tag.valueoffset, uid_tag.count
+assert raw.dtype == np.uint16 and raw.nbytes == nbytes
+
+z = np.load(mp)
+gain, b = z["raw_gain"].astype(np.float64), int(z["block"])
+H, W = (int(v) for v in z["shape"])
+scale = ch / H  # raw photosites per export pixel (2 for a 50% export)
+assert abs(scale - cw / W) < 0.01, "map shape doesn't match the active area's aspect"
+nby, nbx = gain.shape[:2]
+ys = cy0 + (np.arange(nby) + 0.5) * b * scale
+xs = cx0 + (np.arange(nbx) + 0.5) * b * scale
+
+k = np.ones(3)
+if a.body_gains:
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "makernote_transplant.py")).read().split("ap = argparse")[0]
+    ns = {}
+    exec(src, ns)
+    rec = ns["entries"](a.inp)[0x0019]["raw"]
+    g1, g2 = (round(float(v), 3) for v in np.frombuffer(rec[84:88], "<f2"))
+    r1, r2 = (float(v) for v in a.ref.split(","))
+    g1, g2 = (v if v > 0 else 2.1 for v in (g1, g2))
+    k = np.array([1.0, (g1 / r1) ** 0.077, (g2 / r2) ** 0.078])
+    print(f"body gains {g1:.3f}, {g2:.3f} -> camera RGB x {np.round(k, 5)}")
+
+out = raw.astype(np.float32)
+SITE = {(0, 0): 0, (0, 1): 1, (1, 0): 1, (1, 1): 2}  # RGGB from the raw origin
+clipped = 0
+for (pr, pc), c in SITE.items():
+    rows = np.arange(cy0 + ((pr - cy0) % 2), cy0 + ch, 2)
+    cols = np.arange(cx0 + ((pc - cx0) % 2), cx0 + cw, 2)
+    interp = RegularGridInterpolator((ys, xs), gain[..., c], bounds_error=False, fill_value=None)
+    g = np.empty((len(rows), len(cols)), np.float32)
+    for i0 in range(0, len(rows), 256):
+        rr = rows[i0:i0 + 256]
+        yy, xx = np.meshgrid(np.clip(rr, ys[0], ys[-1]), np.clip(cols, xs[0], xs[-1]), indexing="ij")
+        g[i0:i0 + 256] = interp(np.stack([yy.ravel(), xx.ravel()], 1)).reshape(len(rr), len(cols))
+    g *= k[c]
+    v = (out[np.ix_(rows, cols)] - black) * g + black
+    clipped += int((v > white).sum())
+    out[np.ix_(rows, cols)] = np.minimum(v, white)
+print(f"map {os.path.basename(mp)}: raw gain {gain.min():.3f}..{gain.max():.3f}; photosites clipped: {clipped} ({clipped / (ch * cw):.3%})")
+
+shutil.copyfile(a.inp, a.out)
+with open(a.out, "r+b") as fh:
+    fh.seek(off)
+    fh.write(np.round(out).astype("<u2").tobytes())
+    uid = (a.uid or ("PP" + os.path.basename(a.out)[:14])).encode()[:uid_len].ljust(uid_len, b"0")
+    fh.seek(uid_off)
+    fh.write(uid)
+print(f"wrote {a.out}")

@@ -23,6 +23,10 @@ This is a personal project. It's not affiliated with Hasselblad or Capture One.
 | Whole frame vs Phocus with corrections on (28P / 35-100) | 2.23 / 0.94 | **1.51 / 0.73** |
 | Setup | copy two files, restart | the same, plus one LCC per lens |
 
+**Experimental, closest of all:** pre-processed copies of the raws (Phocus's lens correction written into
+the raw) rendered with plain E5: whole frame 0.67 (28P) / 0.47 (35-100). See
+[Pre-processed raws](#experimental-pre-processed-raws).
+
 E5 exists for the XCD 28P and XCD 35-100, in a daylight and a tungsten version. For other lenses use
 E4.
 
@@ -71,6 +75,22 @@ only together with the LCC. Without it they render slightly warm.
 - Use **As Shot** white balance, as you would in Phocus.
 - Edit as usual afterwards. The match was measured with every other adjustment at its default.
 
+## Experimental: pre-processed raws
+
+`tools/preprocess_3fr.py` writes a corrected copy of a 3FR with Phocus's vignetting correction and colour
+shading built into the sensor data. Your original is only read. Render the copy with **HNCS E5 28P
+(pre-processed)** or **HNCS E5 35-100 (pre-processed)**: plain E5 profile, Light Falloff 0, no LCC.
+
+```sh
+.venv/bin/python tools/preprocess_3fr.py YOUR_RAW.3fr "Corrected/YOUR_RAW.3fr" --maps fit/preprocess_maps
+```
+
+It needs a map for the lens, focal length and aperture. `fit/preprocess_maps/` has the 28P at f/5.6, f/8
+and f/16 and the 35-100 at 35 mm f/11 and 50 mm f/8. For other settings, make one with Phocus (see
+[tools/README.md](tools/README.md#pre-processing)). Costs: a full-size copy of each raw, and brightening
+the corners uses highlight headroom there (2.3% of photosites clipped on an f/16 frame with bright sky in
+the corners).
+
 ## Known limits
 
 - **One camera.** Each X2D II carries a factory calibration record that Phocus uses to normalise the
@@ -109,10 +129,12 @@ The step-by-step notes are in [docs/research-log.md](docs/research-log.md); the 
 ## Repository layout
 
 ```
-profiles/   HNCS E4 (all lenses); HNCS E5 28P LCC, HNCS E5 35-100 LCC, and a Tungsten version of each
+profiles/   HNCS E4 (all lenses); HNCS E5 28P LCC, HNCS E5 35-100 LCC, and a Tungsten version of each;
+            plain HNCS E5 28P / 35-100 for pre-processed raws
 styles/     a plain and a "+ Light Falloff 120" style for each profile
 fit/        lut_e4.npz, lut_e5_*.npz (daylight and tungsten)   fitted 33³ tables before ICC encoding
             lcc/          colour shading maps for the LCC references, and the profiles' input gains
+            preprocess_maps/  raw-gain maps by lens state for preprocess_3fr.py; c1_response.npz
             synthetic/    Phocus's renders of the synthetic patches (camera RGB → Lab) and flat-field maps
             configs/      frames and settings of the E4 fit
 docs/       results, methodology, research log, open questions, original design, contact sheet
