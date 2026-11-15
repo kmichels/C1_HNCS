@@ -116,6 +116,8 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `compare_gain_maps.py C1_FLAT_RENDER PHOCUS_MAP` | Capture One's spatial gain (Light Falloff, LCC) vs Phocus's |
 | `make_lcc_raw.py HOST OUT --colour MAP` | LCC reference raw that reproduces a colour shading map |
 | `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
+| `body_gains.py RAW` | Read a body's factory calibration gains and print the profile input gain for that body |
+| `hncs_structure.py LUT GAINMAP PAIRS…` | Tone curve, model comparison, hue constancy and gamut from synthetic pairs |
 
 `fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
 `fit/synthetic/flat_maps/` the flat-field gain maps, so E5 can be refitted without Phocus.

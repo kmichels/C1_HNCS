@@ -73,7 +73,8 @@ only together with the LCC. Without it they render slightly warm.
 
 - **One camera.** Each X2D II carries a factory calibration record that Phocus uses to normalise the
   body and Capture One ignores. The profiles match the body they were made on; another body can differ
-  by about 1 b*.
+  by about 1 b*. `tools/body_gains.py YOUR_RAW.3fr` prints the input gain that adapts a profile to your
+  body (pass it to `tools/write_profile.py --input-gain`).
 - **White balance.** Phocus's colour shifts with white balance. The profiles are an average over
   about 4700–6300 K. At tungsten (about 3400 K) they're 1.6–2.1 ΔE00 off.
 - **XCD 28P at f/5.6 and narrower.** Phocus corrects vignetting more strongly than Capture One's Light

@@ -28,14 +28,20 @@ tungsten frame's AsShotNeutral into the grid raws; `make_synthetic_raw.py --neut
 them on their own, and write "HNCS E5 … Tungsten". Capture One can't switch profiles by white balance,
 so it would be a manual choice. A Kelvin sweep would show where Phocus's behaviour changes.
 
-## 3. Other bodies
+## 3. A pre-processing step before Capture One
 
-Phocus normalises each body with two channel gains from a factory calibration record in the maker note
-(entry 0x0019, bytes 84–87, two half-floats). Capture One ignores them. So the profiles match the body
-they were fitted on, and another X2D II can differ by about 1 b*.
+X2D II raws are uncompressed and both apps accept edited copies, so a converter could write corrected
+copies of 3FRs before import:
+- Apply Phocus's spatial processing (colour shading, plus vignetting correction by lens, aperture and
+  focal length) directly to the sensor data. Capture One would then run with Light Falloff 0 and no
+  LCC. That would fix question 1 exactly and remove the LCC compensation.
+- Normalise the body with its factory gains (Finding 13), so one profile fits any X2D II.
+- Possibly pre-select per-file settings (the lens's profile, a tungsten profile by white balance) by
+  writing Capture One's settings sidecar, if its format can be worked out.
 
-**Possible fix.** Measure how Phocus maps those two gains to its correction (a synthetic sweep of
-sensible values). Then read any body's record and derive a per-body input-gain variant of the profile.
+Costs: an extra copy step (never touching originals); brightening corners in the raw uses up
+highlight headroom there (up to ~2 stops in the 28P's corners with corrections on). The
+white-balance dependence would still be averaged unless profiles are chosen per white balance.
 
 ## 4. Remaining per-frame lightness differences
 
@@ -43,22 +49,27 @@ Some real frames are 0.5–1 L* darker in Capture One than in Phocus overall. It
 (both apps apply it), and it isn't the factory gains (colour, not lightness). Candidates:
 - the ~0.2 L* left in the maker-note entries that can't be swapped in place (newer focus-distance
   fields 0x0081–0x0083);
-- focus-distance-dependent lens processing, which the blog reports Phocus does with lens corrections
-  on.
+- (Focus distance is ruled out for the 28P: Finding 12.)
 
 ## 5. Mechanism of Phocus's spatial colour shading
 
 Measured precisely, but its source isn't confirmed. The likely source is the per-lens "blue-corner
 shading" files in the camera firmware's lens database (reported by blog.tonalphoto.com). It is
 applied whether lens corrections are on or off, and the brightness lift it brings with corrections off
-is the "edge brightening" earlier versions removed by hand. Unknown: dependence on focus distance; the
-28P shows slightly more colour at f/4 than at f/8 in the extreme corners.
+is the "edge brightening" earlier versions removed by hand. No focus dependence on the 28P (Finding 12);
+other lenses untested. The 28P shows slightly more colour at f/4 than at f/8 in the extreme corners.
 
 ## Resolved
 
+- **Other bodies.** Phocus's per-body correction follows a simple formula from the two factory gains
+  (Finding 13). `tools/body_gains.py` reads any raw's record and prints the profile input gain for that
+  body. Validated on 32 raws from another body.
+- **Focus distance (28P).** An apparent focus effect was BaselineExposure. With exposure equalised,
+  near and far focus give identical correction, and no focus-related metadata changes the output
+  (Finding 12).
 - **"The two lenses render greys about 1 b* apart."** It's mostly Phocus's radial colour shading,
   which real-photo fits averaged over the frame. At the centre the only lens effect is 0.8 L* of
   brightness. E5 handles both: a per-lens table, and an LCC for the shading.
-- **"The DPReview frames render greys about 1 b* off."** It's the factory calibration record (question 3),
-  not firmware, serial or scene content.
+- **"The DPReview frames render greys about 1 b* off."** It's the factory calibration record (Findings 2
+  and 13), not firmware, serial or scene content.
 - **"The 28P corners stay half a stop dark."** That's question 1: it depends on aperture.

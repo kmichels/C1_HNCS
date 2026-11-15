@@ -311,3 +311,95 @@ f/5.6 and narrower.
   at f/5.6–f/16, where Light Falloff 120 under-corrects (Finding 7).
 - First attempt without the compensating input gain was worse than E4 (28P 3.40): the LCC's global shift
   made the centre −3.5 b* too blue. The flat-field test had hidden it by normalising to the centre.
+
+### Finding 11: what HNCS is made of
+
+**In plain terms:** For everyday colours, HNCS behaves mostly like a classic camera profile: a colour
+matrix followed by a tone curve applied to each channel separately (not a "hue-preserving" curve). That
+alone gets within about 1 ΔE00. The rest is genuinely three-dimensional, so colour adjustments depend
+on brightness too, and saturated colours are reshaped in ways no simple model follows. Phocus's
+"response" setting changes only the tone curve: Standard and a brighter alternative (likely
+"Reproduction") share the same colour.
+
+35-100, host white balance, ~33,000 synthetic patches with Phocus's spatial gain removed; simple
+models fitted on camera-RGB saturation < 0.6 (s = 1 − min/max of white-balanced camera RGB), scored on
+held-out patches (median ΔE00):
+
+| model | s 0–0.3 | 0.3–0.6 | 0.6–0.85 | 0.85–1 |
+|---|---|---|---|---|
+| A 3×3 matrix → ProPhoto → one tone curve per channel | 1.02 | 1.05 | 2.87 | 6.94 |
+| B 3×3 matrix → tone curve on luminance (hue-preserving) | 3.05 | 3.74 | 5.85 | 7.48 |
+| C A + 2.5-D hue/saturation table (36 hue × 10 chroma bins) | 0.84 | 0.83 | 2.79 | 6.93 |
+| D full 33³ LUT | 0.43 | 0.27 | 0.52 | 1.34 |
+
+- Neutral tone curve (camera green linear, Capture One's scale, where 0.18 ≈ middle grey): L* 24 at
+  −3 EV, 38 at −1.8, 52 at −1.0, 73 at +0.15, 90 at +1.2, 97 at +1.7, 99 at +2.0. HNCS greys sit at
+  a* −0.6 to −1.8 (slightly green).
+- Hue when a colour is brightened 1 and 2 stops (same camera RGB ratios): red, yellow, cyan, blue,
+  magenta within ±1.5°; green −3.5°; orange and skin +6–7° as they approach the highlights.
+- 6% of all synthetic patches (all extreme) come out with a ProPhoto channel clipped at 0; none at full
+  scale. Output chroma reaches C* 175.
+- Sidecar `FilmCurve` (Standard = 4): values 1–5 render identically; 0 renders about a stop brighter in
+  the midtones with a gentler highlight roll-off (grey L* 57.9 vs 43.6; 88.0 vs 80.2), with chroma
+  unchanged (median ratio 1.004). Matches the blog's description of the Reproduction response
+  (near-white L* 73 under Standard vs 90).
+
+### Finding 12: no focus-distance dependence on the 28P; an exposure tag mimics one
+
+**In plain terms:** Two real 28P frames at f/4, one focused at infinity and one at 0.24 m, got
+slightly different vignetting correction in Phocus, which looked like focus mattering. It was
+the exposure tag: one file carries BaselineExposure +0.76. Swapping just that tag swaps the
+correction maps exactly. Phocus's correction shrinks slightly as the image gets brighter.
+
+Synthetic L* 45 flat fields, lens corrections on (vignetting), hosts B0000939 (28P f/4, 0.24 m,
+BaselineExposure +0.764) and B0000926 (28P f/4, ∞, BaselineExposure 0); green gain at r 0.4 / 0.6 / 0.7:
+
+| file | gain (stops) |
+|---|---|
+| near focus, own BE (+0.764) | +0.562 / +1.126 / +1.484 |
+| far focus, own BE (0) | +0.590 / +1.184 / +1.569 |
+| near focus, BE set to 0 | +0.591 / +1.184 / +1.569 |
+| far focus, BE set to +0.764 | +0.561 / +1.126 / +1.483 |
+
+- No effect at all (byte-identical output) from: maker-note focus fields 0x0081–0x0083 transplanted
+  from the far file; EXIF SubjectDistance set to infinity. This confirms blog.tonalphoto.com's finding
+  that Phocus ignores these.
+- Transplanting every same-size maker-note entry from the far file: no change within r ≤ 0.6 (corners
+  of the near file clip at +0.76 EV, so not comparable there).
+- The correction's effective gain is ~0.06 stop smaller at r 0.6 when the image is 0.76 EV brighter.
+  This is consistent with the blog's note that the gain shrinks near clipping (highlight compression
+  after the gain).
+- The blog's focus-distance dependence was measured on the XCD 55V and 90V. This doesn't contradict it,
+  but exposure differences between frames (BaselineExposure) can look like a focus effect.
+
+### Finding 13: how Phocus uses the factory gains, and per-body profiles
+
+**In plain terms:** The two calibration numbers each camera stores (Finding 2) act like small
+adjustments to how strongly Phocus reads the blue and green channels. A sweep of synthetic files with
+different values gave a simple formula. With it, a profile made on one camera can be adjusted for any
+other X2D II from a single raw of that camera, and tested on 32 photos from another body it removes
+that body's colour offset.
+
+Owner's 35-100 synthetic grid (host white balance) with the two half-floats changed one at a time.
+For each, the camera-RGB multipliers (G fixed at 1) that make the E5 table reproduce Phocus's new
+output:
+
+| gains (g1, g2) | greys Δa* / Δb* | kR | kB | residual after fit |
+|---|---|---|---|---|
+| 2.200, 2.260 | +0.91 / −0.63 | 1.0118 | 1.0147 | 0.66 → 0.23 |
+| 2.400, 2.260 | +0.45 / −0.31 | 1.0058 | 1.0072 | 0.33 → 0.11 |
+| 2.800, 2.260 | −0.45 / +0.32 | 0.9942 | 0.9928 | 0.33 → 0.12 |
+| 3.000, 2.260 | −0.90 / +0.63 | 0.9884 | 0.9859 | 0.65 → 0.23 |
+| 2.600, 1.960 | −0.25 / +0.64 | 1.0000 | 0.9890 | 0.35 → 0.03 |
+| 2.600, 2.460 | +0.15 / −0.38 | 1.0000 | 1.0064 | 0.20 → 0.02 |
+| 2.600, 2.660 | +0.30 / −0.74 | 0.9999 | 1.0128 | 0.40 → 0.03 |
+
+- Second value: a pure blue multiplier, ln kB = 0.0775 · ln(g2 / 2.260).
+- First value: mostly an inverse green multiplier (red and blue together), ln kR = −0.0705 · ln(g1 / 2.600),
+  ln kB = −0.0875 · ln(g1 / 2.600).
+- The effect is weak (a 15% change in a stored value moves a channel ~1%), so the stored numbers aren't
+  used as raw sensitivity ratios directly.
+- Prediction for the DPReview body (2.363, 2.518): kR 1.0068, kB 1.0169. Applied to E5 on 32 DPReview
+  photos (frame centre): grey offset a*/b* −0.52/+0.53 → −0.08/−0.03; median 1.23 → 1.02 (held-out 9:
+  1.02 → 0.95).
+- `tools/body_gains.py RAW` reads a raw's record and prints the profile input gain for that body.
