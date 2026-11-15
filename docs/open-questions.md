@@ -17,8 +17,8 @@ Everything still open, in one place. Details for the numbered questions are belo
   Low Gain / Negative (Finding 19).
 - [x] `ColorModel` 1: a separate rendering (Standard's colour stage + more exposure and saturation + a much
   lighter shadow curve; ignores `FilmCurve`) (Finding 18).
-- [ ] `ColorWorkingSpace` 1–3 change the colour stage, not only where the curve runs (Finding 18). Which
-  spaces are they? (Check the Working Space menu against the sidecar; needs the app.)
+- [x] `ColorWorkingSpace`: 0 Hasselblad RGB (default), 1 Hasselblad L\* RGB (both in the menu); 2–5 are
+  hidden L\* variants with ProPhoto or XYZ primaries (Finding 20).
 - [x] Factory gains: a green and a blue gain; no lens dependence, slight white-balance dependence;
   the two combine; zero acts like ~2.1 (Finding 16).
 - [x] Focus distance on the 35-100, and the 28P at f/5.6 and f/8: none (Finding 17).

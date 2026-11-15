@@ -612,6 +612,7 @@ saturation (0–0.3 / 0.3–0.6 / 0.6–0.85 / 0.85–1):
   The same test on the Standard render returns it exactly (0.00), which checks the method.
 - Rec.2020 comes close to Hasselblad RGB in that check (0.18): the two spaces' primaries are similar.
 - The owner's real sidecars (33) all use `ColorWorkingSpace` 0, `ColorModel` 0, `FilmCurve` 4.
+- Finding 20 names the working spaces.
 
 ### Finding 19: the Response menu is the ColorModel key
 
@@ -644,3 +645,34 @@ only `ColorModel` behaves like that: 1 changes the rendering, and 2 and 3 render
   lighter shadow curve. Low Gain is darker throughout, with slightly less chroma.
 - `FilmCurve`'s menu strings are As Shot, Standard, Low Contrast, High Contrast, Old Standard, Linear
   (0–5); the brighter rendering is "As Shot", which may not be offered for X2D II files.
+
+### Finding 20: Phocus's working spaces
+
+**In plain terms:** Phocus's Working Space menu offers Hasselblad RGB (the default) and Hasselblad L\*
+RGB, stored as `ColorWorkingSpace` 0 and 1. The code knows four more values that aren't in the menu. All
+but the default use an L\* encoding instead of a gamma curve, which changes the tone curve, and each one
+also changes saturation. The default is the space where Finding 14 found the tone curve.
+
+**From the code.** The menu (`imageProperties.workingSpaceIx` in the Reproduction tool) stores its index
+unchanged; its items are "Hasselblad RGB" and "Hasselblad L\* RGB". In `HBRawCorrections`:
+- `IsLStarWorkingSpace(ws)`: true for 1–5; `DeduceCompanding(ws)`: L\* companding for 1–5, otherwise gamma;
+- `GetColorSpaceChangeMatrix(ws)`: identity for 0; for the others, a stored matrix (inverted where it
+  holds primaries) times `kMHasselbladRGB`, except value 3, which skips the Hasselblad RGB step. The stored
+  matrices are Hasselblad L\* RGB's primaries (1), XYZ → ProPhoto (2), the D50 white as a diagonal (3, 4)
+  and ProPhoto's primaries (5).
+
+**Rendered** (`tools/round3/working_spaces_all.py`):
+
+| value | space | in the menu | median ΔE00 vs 0 | chroma ratio | grey L\* at camera 0.028 / 0.165 / 0.428 |
+|---|---|---|---|---|---|
+| 0 | Hasselblad RGB, gamma | yes (default) | — | 1.000 | 15.8 / 57.5 / 84.9 |
+| 1 | Hasselblad L\* RGB, L\* | yes | 5.80 | 0.884 | 14.0 / 61.3 / 86.9 |
+| 2 | ProPhoto primaries, L\* | no | 4.15 | 0.921 | 14.0 / 61.3 / 86.9 |
+| 3 | XYZ (D50), L\*, no Hasselblad RGB step | no | 2.62 | 1.047 | 14.0 / 61.3 / 86.9 |
+| 4 | XYZ (D50), L\*, via Hasselblad RGB | no | 11.16 | 0.747 | 13.9 / 61.2 / 86.8 |
+| 5 | ProPhoto primaries, L\* | no | 4.15 | 0.921 | as 2 |
+
+- Values 2 and 5 render identically (0.00), as the code predicts: two routes to the same matrix.
+- All L\* spaces share one grey curve, different from the default's (more midtone contrast).
+- Moving Standard's curve into these spaces doesn't reproduce them (Finding 18), so the colour stage also
+  depends on the working space, as the colour-correction filter's signature (which takes it) suggests.
