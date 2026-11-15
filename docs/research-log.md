@@ -4,7 +4,18 @@ Working notes for a later write-up. Dated entries, newest last. Numbers are ΔE0
 stated; "greys" means near-neutral patches or blocks. Camera: Hasselblad X2D II 100C; Phocus 4.2.2 (Mac);
 Capture One 16.9.
 
+**In plain terms:** Phocus can't be scripted and doesn't document its colour science (HNCS). So the
+approach was to feed it raw files whose content is known exactly, and measure what comes out. X2D II
+raws store the sensor data uncompressed, so a real raw can be copied and its picture replaced with
+patches of known colour. That answered questions real photos couldn't: why two cameras render
+differently in Phocus, what Phocus does at the edges of the frame, and how its colour changes with
+white balance. It also produced better Capture One profiles than fitting to real photos did.
+
 ## Background (before 2026-11-15)
+
+**In plain terms:** Before this, profiles were fitted by rendering real photos in both apps and
+matching them. That got within about 0.7 ΔE00 (hard to see), but left puzzles: frames from another
+camera rendered slightly differently, and the edges of the frame never quite matched.
 
 - E1–E3: Capture One camera profiles (33³ RGB→Lab LUT) fitted to Phocus renders of real frames, owner's
   XCD 28P and XCD 35-100. E3 held-out ≈ 0.7–0.8.
@@ -22,6 +33,10 @@ Capture One 16.9.
 
 ### Raw format facts (X2D II 3FR, firmware 1.1.6.3 and 1.3.16.2)
 
+**In plain terms:** An X2D II raw is a TIFF file holding a small preview and the full sensor readout as
+plain, uncompressed 16-bit numbers. So new sensor data can be written into a copy of a real file while
+everything else (camera, lens, white balance) stays as it was.
+
 - TIFF container, little-endian. IFD0 holds a 3888×2918 JPEG preview plus DNG-style tags:
   AsShotNeutral, ColorMatrix1, BaselineExposure, BaselineExposureOffset (−0.02), CameraSerialNumber,
   UniqueCameraModel, RawDataUniqueID.
@@ -34,6 +49,11 @@ Capture One 16.9.
 - ColorMatrix1 is identical across the two bodies examined.
 
 ### Method
+
+**In plain terms:** Each test file is a real raw with its picture replaced by a grid of flat colour
+squares. Capture One shows exactly what camera colour it reads for each square, and Phocus shows what it
+turns that colour into. Phocus has no scripting, but its "hot folder" exports any raw dropped into a
+watched folder, and it can be switched on from the command line, so the loop runs unattended.
 
 - `tools/make_synthetic_raw.py HOST.3fr OUT.3fr`: copies a real raw and overwrites the active area with
   flat 32 px patches of chosen white-balanced camera RGB (using the host's AsShotNeutral to set raw
@@ -57,6 +77,10 @@ Capture One 16.9.
 
 ### Finding 1: the DPReview offset comes from file metadata, not scene content
 
+**In plain terms:** The same synthetic picture renders slightly differently in Phocus depending on which
+camera's file it sits in: a small, even colour shift. So it comes from the file's metadata, not from
+what was photographed. Capture One renders both identically.
+
 Same synthetic patches written into a DPReview raw and into the owner's 35-100 raw (white balance nearly
 identical, AsShotNeutral within 0.4%):
 
@@ -67,6 +91,11 @@ identical, AsShotNeutral within 0.4%):
 Capture One's input was identical (|Δdevice| < 0.0001): Capture One ignores whatever differs.
 
 ### Finding 2: it's one factory calibration value in the maker note
+
+**In plain terms:** Swapping metadata between files one piece at a time narrowed the cause to a single
+4-byte value: two numbers in a factory calibration record that each camera writes into every raw.
+Phocus uses them to make every body render alike; Capture One ignores them. So a Capture One profile is
+tied to the camera it was made on, and other X2D IIs may differ slightly.
 
 Fields differing between the hosts: Software (firmware), CameraSerialNumber, MakerNote (29,840 vs 23,188
 bytes), trivially AsShotNeutral and WhiteLevel. Transplants into an otherwise identical file:
@@ -92,6 +121,10 @@ bytes), trivially AsShotNeutral and WhiteLevel. Transplants into an otherwise id
 
 ### Finding 3: lens metadata changes Phocus's rendering (lens corrections off)
 
+**In plain terms:** The same picture tagged as shot with the XCD 28P comes out slightly darker in Phocus
+than when tagged as the XCD 35-100, even with lens corrections turned off. Phocus applies some
+lens-specific processing whatever that setting says.
+
 Same patches, owner's body, XCD 28P host vs XCD 35-100 host; then the 28P host with its AsShotNeutral
 set equal to the 35-100 host's:
 
@@ -105,6 +138,10 @@ So at the frame centre the lens changes brightness by about −0.8 L* (28P darke
 
 ### Finding 4: E5, a profile fitted on synthetic patches only
 
+**In plain terms:** A profile fitted only on synthetic squares, with no real photos at all, matched real
+photos as well as the previous best profile on the 35-100. On the 28P it did worse, which led to the
+next finding.
+
 33³ colours per lens, 3 files each, hosted in the owner's raws (35-100: B0000727; 28P: B0000931); ~33,000
 usable patches per lens; edge lift removed per patch with each lens's measured lift.
 
@@ -117,6 +154,11 @@ Synthetic fit residual median 1.0, p90 7.1, dominated by extremely saturated pat
 legacy Lab encoding and the storable range allow.
 
 ### Finding 5: Phocus applies radial colour shading even with lens corrections off
+
+**In plain terms:** Phocus warms the image toward the edges of the frame, strongly with the 28P and
+mildly with the 35-100, even with lens corrections off. A camera profile treats every part of the
+frame the same, so it can't do this. This explains most of the "colour difference between the two
+lenses" seen earlier.
 
 E5 minus Phocus on the owner's real frames, by distance from the centre (fraction of the half-diagonal):
 
@@ -144,6 +186,11 @@ scene-adaptive.
 
 ### Finding 6: Phocus's spatial processing, measured with synthetic flat fields
 
+**In plain terms:** Rendering a perfectly even grey file shows exactly what Phocus does across the frame.
+It brightens the edges a little with corrections off and a lot with them on, and either way it reduces
+blue toward the edges. The colour part barely changes with aperture; the brightness part (with
+corrections on) depends on aperture and focal length.
+
 Uniform L* 45 grey written into six host raws (35-100 at 35 mm f/11, 100 mm f/11, 45 mm f/8; 28P f/8 ∞,
 f/4 ∞, f/4 0.3 m), each exported twice: sidecar `LensCorrection` 0 (off) and 4 (vignetting on). Phocus's
 output inverted per 64 px block through the centre-accurate E5 LUT gives its per-channel gain map
@@ -170,6 +217,11 @@ At r = 0.9: 28P off +0.76 st (B−G −0.19), on +2.02 st at f/8 / +2.29 at f/4;
 
 ### Finding 7: Capture One's Light Falloff vs Phocus, and a synthetic LCC
 
+**In plain terms:** Capture One's Light Falloff changes brightness only. At its maximum it matches Phocus
+on the 35-100 and on the 28P at f/4, but not on the 28P at smaller apertures. The colour part can be
+reproduced with an LCC (Capture One's flat-field correction): a synthetic LCC reference built from
+Phocus's measurements does it, once its strength is corrected.
+
 Capture One renders of the same flat fields through the probe profile (`tools/compare_gain_maps.py`):
 
 - Light Falloff is brightness only (B−G exactly 0).
@@ -188,6 +240,9 @@ Capture One renders of the same flat fields through the probe profile (`tools/co
 
 ### Finding 8: Phocus's colour depends on white balance even within daylight
 
+**In plain terms:** Phocus's colour changes with white balance even between ordinary daylight settings. A
+profile fitted at one white balance is excellent near it and less good on warmer or cooler shots.
+
 E5b (synthetic grid at one host white balance, Phocus gain maps applied to the patches) scored at the
 frame centre (r < 0.2, per-pixel tetrahedral weights) on every owner frame: 0.25–0.65 on most, but
 0.8–1.2 on the warmest-balanced frames. Across frames, centre error vs |log(B/R neutral ratio relative
@@ -201,6 +256,9 @@ too (its grey patches stay at a* −1.3, b* +0.4–0.5 across all five, i.e. con
 renders neutral grey slightly green).
 
 ### Finding 9: E5c, synthetic only, at six white balances
+
+**In plain terms:** Fitting across six white balances, still from synthetic data only, gives the best
+profiles so far. They beat the profile fitted to real photos on photos neither ever saw.
 
 Per lens: the 33³ grid at the host white balance plus 22³ grids at five owner frames' neutrals (926, 939,
 701, 746, 901: B/R from 1.32 to 1.86); ~82,000 patches; Phocus gain map (corrections off, same host)
@@ -218,6 +276,12 @@ Synthetic fit residual median rises to ~1.5 because one LUT can't follow the whi
 exactly; it settles on the average, which is what a single Capture One profile can do.
 
 ### Finding 10: how Capture One's LCC colour correction works, and the full chain on real photos
+
+**In plain terms:** Capture One's LCC shifts the colour of the whole image, not just the edges, because
+it corrects relative to the reference's average colour. Building the opposite shift into the profile
+cancels it. With that, the combination of a per-lens profile, Light Falloff 120 and a colour LCC
+matches Phocus better than before across the whole frame. What remains on the 28P is edge brightness at
+f/5.6 and narrower.
 
 - Capture One's LCC colour correction, measured on synthetic references:
   correction_c(x) = (mean of reference_c / reference_c(x))^1.14, per channel relative to green.
