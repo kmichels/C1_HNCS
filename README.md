@@ -23,8 +23,9 @@ This is a personal project. It's not affiliated with Hasselblad or Capture One.
 | Whole frame vs Phocus with corrections on (28P / 35-100) | 2.23 / 0.94 | **1.51 / 0.73** |
 | Setup | copy two files, restart | the same, plus one LCC per lens |
 
-**Experimental, closest of all:** pre-processed copies of the raws (Phocus's lens correction written into
-the raw) rendered with plain E5: whole frame 0.67 (28P) / 0.47 (35-100). See
+**Closest of all (experimental):** pre-processed copies of the raws, with Phocus's lens correction
+written into the raw, rendered with plain E5. On 23 photos not used in fitting, whole frame: 0.65 (28P)
+/ 0.49 (35-100), against 1.38 / 0.64 for E5 + LCC and 2.07 / 0.65 for E4. See
 [Pre-processed raws](#experimental-pre-processed-raws).
 
 E5 exists for the XCD 28P and XCD 35-100, in a daylight and a tungsten version. For other lenses use
@@ -85,8 +86,8 @@ shading built into the sensor data. Your original is only read. Render the copy 
 .venv/bin/python tools/preprocess_3fr.py YOUR_RAW.3fr "Corrected/YOUR_RAW.3fr" --maps fit/preprocess_maps
 ```
 
-It needs a map for the lens, focal length and aperture. `fit/preprocess_maps/` has the 28P at f/5.6, f/8
-and f/16 and the 35-100 at 35 mm f/11 and 50 mm f/8. For other settings, make one with Phocus (see
+It needs a map for the lens, focal length and aperture; `fit/preprocess_maps/` has a few dozen for the
+28P and 35-100. `tools/auto_maps.py YOUR_RAWS…` makes the missing ones with Phocus, unattended (see
 [tools/README.md](tools/README.md#pre-processing)). Costs: a full-size copy of each raw, and brightening
 the corners uses highlight headroom there (2.3% of photosites clipped on an f/16 frame with bright sky in
 the corners).

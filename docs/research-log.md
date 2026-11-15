@@ -774,3 +774,79 @@ r 0.9: +0.02 to +0.07 (28P f/8, BaselineExposure 0) and −0.04 to −0.10 (28P 
 - Finding 12 revisited: converted to raw gains, near/far focus and BaselineExposure 0/+0.764 give the
   same correction to within 0.002 stop at r 0.4–0.6 (0.015 at r 0.7). The 0.06-stop difference reported
   there was Capture One's response, not Phocus compressing its gain.
+
+### Finding 23: highlight handling, Phocus vs Capture One
+
+**In plain terms:** At default settings the two apps treat highlights the same: the HNCS tone curve
+reaches white about a quarter stop before the sensor clips, in both. The differences are in what
+happens once a sensor channel clips. Phocus keeps some colour where one channel has clipped (Capture One
+goes to pure white), and Phocus's Highlight Recovery setting genuinely rebuilds a clipped channel from
+the others, keeping tone up to about 1.5 stops past clipping while staying neutral. Capture One's
+Highlight slider only compresses the tones below clipping. Neither can come from a profile; it happens
+before the profile is applied.
+
+Test raw (`make_synthetic_raw.py --device-npy … --scale 1.0`, values clipped at the white level like a
+sensor): greys and 12 hues at saturation 0.3 / 0.6 / 0.9, each at 17 exposures from 2 stops under to 2
+stops over the point where its brightest channel reaches white. Phocus via the hot folder (default;
+`HighlightRecovery` 50 and 100; `HighlightDesaturation` 0 and 100; `AutoHighlight` 1). Capture One with
+HNCS E5 35-100 (default; Highlight −100; White −100). Script: `tools/highlight_test.py`; log
+`data/logs/highlight_test.txt`.
+
+Greys, L\* at exposure (× the green channel's clip point):
+
+| exposure | 0.5 | 0.71 | 0.84 | 1.0 | 1.41 | 2.0 | 2.83 |
+|---|---|---|---|---|---|---|---|
+| raw channels clipped | 0 | 0 | 0 | 1 | 1 | 2 | 3 |
+| Phocus default | 90.6 | 96.8 | 99.1 | 100 | 100 | 99.9 | 99.8 |
+| Phocus HighlightRecovery 50 | 80.5 | 87.6 | 91.0 | 94.2 | 98.7 | 100 | 99.9 |
+| Phocus HighlightRecovery 100 | 66.9 | 72.8 | 76.2 | 80.9 | 87.4 | 95.9 | 100 |
+| Capture One + HNCS | 90.6 | 97.0 | 99.3 | 100 | 100 | 100 | 100 |
+| Capture One Highlight −100 | 85.4 | 91.1 | 93.6 | 98.0 | 100 | 100 | 100 |
+| Capture One White −100 | 89.6 | 95.8 | 97.9 | 100 | 100 | 100 | 100 |
+
+Colours with one raw channel clipped (137 patches), median L\* and chroma: Phocus default 98.8 / 16.7;
+HighlightRecovery 50: 94.6 / 32.0; HighlightRecovery 100: 82.4 / 40.6; Capture One + HNCS 100.0 / 0.1;
+Highlight −100: 97.1 / 6.2; White −100: 99.5 / 0.4. Below clipping the two apps agree (0.50 ΔE00 on 367
+unclipped colour patches; with two or three channels clipped both are white, 0.3–0.5).
+
+- Phocus's `HighlightRecovery` compresses the whole upper range (an unclipped grey at 0.84× goes from L\*
+  99 to 76 at 100) and reconstructs the clipped channel: greys stay neutral (a\*, b\* within 0.6) and keep
+  gaining tone until all three channels clip. Across the 9 exposures from the clip point to 2 stops over,
+  it keeps 8 distinct steps at 100, against 4 for every other setting in either app.
+- `HighlightDesaturation` and `AutoHighlight` changed nothing here (they may act only with recovery or HDR
+  on, or on real images).
+- Limits: uniform patches test per-pixel reconstruction only. Methods that borrow from neighbouring
+  pixels would behave differently on real images; a frame with clipped sky would confirm the effect.
+
+### Finding 24: automatic maps, and pre-processing validated on 23 unseen photos
+
+**In plain terms:** Correction maps can now be made without touching Phocus: a script renders flat fields
+through Phocus's hot folder and caches one map per lens, focal length and aperture (42 so far). With
+them, the pre-processing route was checked on 23 of the owner's photos that no fit had used. It's the
+closest route on every 28P frame and on most 35-100 frames, and its corners are as good as its centres.
+
+**Automatic maps.** `tools/phocus_hotfolder.py` renders any raw in Phocus without its GUI. Phocus shows
+(and watches) the last folder of its `ThumbnailsRecent` list (macOS bookmarks), so the helper appends a
+bookmark to a private folder under `~/Pictures` (macOS didn't let Phocus read a folder under
+`~/Documents`), copies the raw there with a sidecar, waits for the export to finish writing (Phocus
+creates it empty first), and restores Phocus's preferences afterwards. `tools/auto_maps.py RAW…` makes
+the maps for every lens state among the raws that `fit/preprocess_maps/` lacks: 34 new ones for the
+owner's 28P and 35-100 frames, about 25 s each.
+
+**Validation.** 7 28P and 16 35-100 frames not used by any fit (`data/val/frames.txt`), across focal
+lengths and apertures (28P B0000911, 912, 916, 919, 926, 929, 939; 35-100 B0000633, 639, 646, 656, 658,
+664, 671, 673, 689, 711, 722, 737, 773, 777, 822, 846). Reference: Phocus with lens corrections on (vignetting), As Shot. Capture One
+renders at 50%, scored per 32 px block after alignment, leaving out clipped blocks and the busiest 30%
+(`tools/score_render.py`). Median ΔE00 over the whole frame (r < 0.95):
+
+| | pre-processed + plain E5 | E5 LCC + LF 120 + colour LCC | E4 + LF 120 |
+|---|---|---|---|
+| 28P (7 frames) | **0.65** (0.38–0.91) | 1.38 (1.09–1.86) | 2.07 (1.72–2.39) |
+| 35-100 (16 frames) | **0.49** (0.26–0.61) | 0.64 (0.44–0.87) | 0.65 (0.35–1.20) |
+
+- 28P corners (r 0.8–0.95): pre-processed 0.43–1.09 with dL within ±0.7; LCC route 1.85–4.26 and E4
+  3.42–5.75, both several L\* too dark (dL −1.8 to −5.7).
+- 35-100 corners: pre-processed 0.26–0.74; LCC route up to 1.55; E4 up to 2.36. On a few long-focal
+  frames with little vignetting, E4 is as close or closer at the centre (B0000639, 658, 673, 711, 722).
+- Highlight headroom: corner gains clip 1.5–2.0% of photosites on three frames (B0000912, B0000737,
+  B0000671 at 1.0%), under 0.3% elsewhere.

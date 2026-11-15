@@ -120,6 +120,10 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
 | `preprocess_3fr.py IN OUT --maps DIR` | Corrected copy of a 3FR with Phocus's lens correction and colour shading in the raw ([pre-processing](#pre-processing)) |
 | `make_preprocess_map.py FLAT_GAIN FLAT.3fr DIR` | Raw-gain map for a lens state, from Phocus's render of a synthetic flat |
+| `auto_maps.py RAW … [--maps DIR]` | Make the missing maps for every lens state among the raws, through Phocus's hot folder (automatic) |
+| `phocus_hotfolder.py` | Python helper: render raws in Phocus without its GUI (private watch folder, settings per file, preferences restored) |
+| `score_render.py PHOCUS.tif C1.tif …` | Score finished Capture One renders against a Phocus export of the same raw (aligned, per block) |
+| `highlight_test.py` | Phocus vs Capture One on a synthetic exposure ladder through raw clipping (Finding 23) |
 | `body_gains.py RAW` | Read a body's factory calibration gains and print the profile input gain for that body |
 | `hncs_structure.py LUT GAINMAP PAIRS…` | Tone curve, model comparison, hue constancy and gamut from synthetic pairs |
 | `hncs_wb_structure.py LUT GAINMAP REF_PAIRS PAIRS…` | What changes with white balance: gains, a 3×3 before the table, or a 3×3 after |
@@ -130,8 +134,15 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 
 ## Pre-processing
 
-To make a map for a lens state that `fit/preprocess_maps/` doesn't have (lens, focal length, aperture;
-focus distance and exposure don't matter):
+Maps for every lens state among some raws, automatically (Phocus is restarted and its preferences
+restored; don't use it meanwhile):
+
+```sh
+python tools/auto_maps.py ~/Pictures/MySession/Capture/*.3FR
+```
+
+By hand, for a lens state that `fit/preprocess_maps/` doesn't have (lens, focal length, aperture; focus
+distance and exposure don't matter):
 
 ```sh
 python tools/make_synthetic_raw.py ANY_RAW_WITH_THAT_LENS_STATE.3fr flat.3fr --flat 30

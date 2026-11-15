@@ -34,6 +34,7 @@ ap.add_argument("--uid", default="HNCSSYNTH0000001")
 ap.add_argument("--part", default="0/1")
 ap.add_argument("--flat", type=float, default=None, help="write a uniform grey at this L* instead of patches")
 ap.add_argument("--neutral-from", default=None, help="use another raw's As Shot white balance (written to IFD0 AsShotNeutral and the maker-note copy 0xc628)")
+ap.add_argument("--device-npy", default=None, help="custom patch list: an N x 3 .npy of device RGB (instead of the --levels grid); values above 1/scale clip at white")
 ap.add_argument("--neutral", default=None, help="As Shot white balance as camera-RGB neutral r,g,b (g = 1), written like --neutral-from")
 a = ap.parse_args()
 
@@ -77,7 +78,7 @@ def fill(region_rows, region_cols, dev):
     for (pr, pc), ch_ in SITE.items():
         rs = r0 + ((pr - r0) % 2)
         cs = c0 + ((pc - c0) % 2)
-        raw[rs:r1:2, cs:c1:2] = np.uint16(np.clip(black + rng * dev[ch_] * neutral[ch_], 0, 65535))
+        raw[rs:r1:2, cs:c1:2] = np.uint16(np.clip(black + rng * dev[ch_] * neutral[ch_], 0, white))  # a sensor saturates at white
 
 
 # background: mid grey everywhere in the active area
@@ -96,6 +97,8 @@ if a.flat is not None:
 
 lv = lstar01_inv(np.linspace(0, 1, a.levels))
 grid = np.stack(np.meshgrid(lv, lv, lv, indexing="ij"), -1).reshape(-1, 3)
+if a.device_npy:
+    grid = np.load(a.device_npy).astype(np.float64)
 pi, pn = (int(v) for v in a.part.split("/"))
 sel = np.random.default_rng(1234).permutation(len(grid))
 grid = grid[np.sort(sel[pi::pn])]

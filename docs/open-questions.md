@@ -22,7 +22,11 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Factory gains: a green and a blue gain; no lens dependence, slight white-balance dependence;
   the two combine; zero acts like ~2.1 (Finding 16).
 - [x] Focus distance on the 35-100, and the 28P at f/5.6 and f/8: none (Finding 17).
-- [ ] Highlight recovery: why people find Phocus better with highlights (question 6).
+- [x] Highlight recovery: measured on synthetic clipping (Finding 23). Phocus keeps colour where one
+  channel clips, and its Highlight Recovery rebuilds clipped channels; Capture One's slider only
+  compresses.
+- [ ] Highlight recovery on a real frame with clipped sky; could the pre-processing step reconstruct
+  clipped channels in the raw the way Phocus does?
 - [ ] Focus distance on the XCD 55V and 90V, where blog.tonalphoto.com saw it (needs raws), and close
   focus on the 35-100 (nearest matched frame was 1.9 m).
 - [ ] Question 1 (28P edges at f/5.6+), question 4 (per-frame lightness), question 5 (shading mechanism).
@@ -30,15 +34,17 @@ Everything still open, in one place. Details for the numbered questions are belo
 **Building**
 - [x] Tungsten profiles (Finding 21). Still to check: the 28P one on real tungsten frames.
 - [x] Pre-processing step: prototype works, 0.3–0.8 ΔE00 over the whole frame (Finding 22).
-- [ ] Pre-processing: make maps automatically (synthetic flat → Phocus hot folder → map) for any lens
-  state not yet in `fit/preprocess_maps/`; a headroom option for bright corners; a batch workflow.
+- [x] Pre-processing: automatic maps (`tools/auto_maps.py`); validated on 23 unseen photos (Finding 24).
+- [ ] Pre-processing: a headroom option for bright corners (1.5–2% clipped on some frames); a batch
+  workflow (folder in, corrected copies out, maps made as needed).
 - [ ] Automate per-image settings by writing Capture One's sidecar, if its format can be worked out.
 - [ ] Refresh the README contact sheet with E5.
 - [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`
   1 or 4, fitted like E5.
 
 **Validation and writing**
-- [ ] Check E5 on new real photos (owner's camera, varied light).
+- [x] Check on photos not used in fitting: 23 frames (Finding 24). Still worth a look: new photos in
+  varied light, especially tungsten and mixed light.
 - [ ] Write up the findings for blog.tonalphoto.com's author.
 
 ## 1. XCD 28P edge brightness at f/5.6 and narrower
@@ -109,10 +115,15 @@ applied whether lens corrections are on or off, and the brightness lift it bring
 is the "edge brightening" earlier versions removed by hand. No focus dependence on the 28P or the 35-100
 (Findings 12 and 17). The 28P shows slightly more colour at f/4 than at f/8 in the extreme corners.
 
-## 6. Highlight recovery
+## 6. Highlight recovery (measured: Finding 23)
 
-People often say Phocus handles highlights better than other raw converters. What the findings so far
-say about it:
+People often say Phocus handles highlights better than other raw converters. Measured on a synthetic
+exposure ladder through clipping: at defaults both apps reach white about a quarter stop before the sensor
+clips, but where one channel has clipped Phocus keeps some colour (chroma 17 vs 0), and its Highlight
+Recovery rebuilds the clipped channel, keeping tone up to about 1.5 stops past clipping. Capture One's
+Highlight slider only compresses tones below clipping. Still open: a real frame with clipped sky, and
+whether a pre-processing step could reconstruct clipped channels in the raw. The notes below were written
+before the test:
 - **The tone curve's shoulder.** HNCS's curve is applied to each channel in Hasselblad RGB (Finding 14)
   and rolls off slowly: L\* 90 at +1.2 EV over middle grey, 97 at +1.7, 99 at +2.0. A per-channel
   curve on a fairly small space eases bright colours toward white rather than clipping them to a hue.
