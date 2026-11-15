@@ -118,6 +118,8 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
 | `body_gains.py RAW` | Read a body's factory calibration gains and print the profile input gain for that body |
 | `hncs_structure.py LUT GAINMAP PAIRS…` | Tone curve, model comparison, hue constancy and gamut from synthetic pairs |
+| `hncs_wb_structure.py LUT GAINMAP REF_PAIRS PAIRS…` | What changes with white balance: gains, a 3×3 before the table, or a 3×3 after |
+| `round3/` | Analyses for Findings 14–16 (response keys, tone-stage space, factory gains) from the saved renders in `data/synth/r3/` |
 
 `fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
 `fit/synthetic/flat_maps/` the flat-field gain maps, so E5 can be refitted without Phocus.

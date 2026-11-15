@@ -403,3 +403,169 @@ output:
   photos (frame centre): grey offset a*/b* −0.52/+0.53 → −0.08/−0.03; median 1.23 → 1.02 (held-out 9:
   1.02 → 0.95).
 - `tools/body_gains.py RAW` reads a raw's record and prints the profile input gain for that body.
+
+## 2026-11-15 (round 3): closing the gaps
+
+Scripts: `tools/round3/` (they read the saved measurements in the local `data/synth/r3/`),
+`tools/hncs_structure.py`, `tools/hncs_wb_structure.py`. Logs: `data/logs/r3_*.txt`,
+`data/logs/hncs_structure_*.txt`, `data/logs/hncs_wb_structure_*.txt`.
+
+### Finding 14: HNCS is a colour stage, then a tone curve per channel in "Hasselblad RGB"
+
+**In plain terms:** Phocus first converts the camera's colour, then applies its tone curve to each
+channel separately in an RGB space of Hasselblad's own, whose definition ships inside Phocus as
+`Hasselblad RGB.icc`. Knowing the space, a colour matrix plus that tone curve explains saturated colours
+far better than before; what's left is a 3D colour table that also depends on lightness. Those are the
+building blocks of a Lightroom (DNG) profile, except Lightroom applies its tone curve in a different
+space and in a different way. White balance changes the colour matrix, like a DNG profile with two
+calibration illuminants. The 28P and the 35-100 behave the same.
+
+**Stage order.** The owner's 35-100 grid rendered with sidecar `FilmCurve` 0 (a brighter response) and 4
+(Standard). Each model tries to produce the FilmCurve 0 render from the Standard render; median ΔE00 on
+moderate | saturated colours (camera-RGB saturation < 0.6 | ≥ 0.6):
+
+| model | host WB | tungsten WB |
+|---|---|---|
+| no change | 7.01 \| 6.42 | |
+| tone first: one curve on camera RGB, then the Standard colour transform | 1.72 \| 2.31 | |
+| tone last: one curve on each channel, ProPhoto | 1.02 \| 2.17 | 0.99 \| 2.14 |
+| tone last: one curve on each channel, Hasselblad L\* RGB (wider primaries) | 1.87 \| 2.98 | 1.60 \| 2.74 |
+| **tone last: one curve on each channel, Hasselblad RGB** | **0.31 \| 0.19** (p90 0.39) | **0.32 \| 0.17** |
+| tone last: lightness only (a\*, b\* kept) | 5.00 \| 4.12 | |
+| tone last: luminance, RGB ratios kept | 6.23 \| 4.19 | |
+
+- Hasselblad RGB (`HBImageProcessing.framework/…/Profiles/Hasselblad RGB.icc`): D50 primaries R (0.6491,
+  0.2989, 0.0046), G (0.1886, 0.6575, 0.0430), B (0.1265, 0.0437, 0.7772); γ 2.2. Phocus also ships
+  "Hasselblad L\* RGB v1" (ProPhoto primaries with an L\* curve) and "Hasselblad L\* RGB" (wider
+  primaries); neither fits.
+- This resolves Finding 11's puzzle (a per-channel curve, yet unchanged chroma across responses): the
+  median chroma ratio 1.004 hid opposite shifts; hue moves a median 3.0° (p90 8.8°), as a per-channel
+  curve predicts.
+- Phocus's library symbols agree: a "gradation manager" keyed on the film-curve type, separate from the
+  colour-correction filter (which takes sensor type, IR filter type, film-curve type and colour model).
+
+**Structure with the right space.** Held-out patches, models fitted on saturation < 0.6 unless noted,
+median ΔE00 by camera-RGB saturation (35-100 | 28P):
+
+| model | 0–0.3 | 0.3–0.6 | 0.6–0.85 | 0.85–1 |
+|---|---|---|---|---|
+| A matrix → ProPhoto → per-channel curve (Finding 11) | 1.02 \| 1.25 | 1.05 \| 1.03 | 2.87 \| 2.69 | 6.94 \| 6.78 |
+| A3 matrix → Hasselblad RGB → per-channel curve | 0.86 \| 1.02 | 1.01 \| 0.96 | 1.74 \| 1.71 | 2.22 \| 2.52 |
+| A2 matrix → ProPhoto → Adobe-style curve (max/min channel, hue kept) | 1.05 \| 1.06 | 1.83 \| 1.82 | 4.54 \| 4.29 | 7.07 \| 6.94 |
+| C A3 + 2.5-D hue/saturation table | 0.73 \| 0.66 | 0.68 \| 0.62 | 1.67 \| 1.64 | 2.18 \| 2.48 |
+| E A3 + 3-D hue × chroma × lightness table (36 × 9 × 8), fitted on all | 0.63 \| 0.59 | 0.37 \| 0.37 | 0.74 \| 0.73 | 0.87 \| 0.82 |
+| D full 33³ table (the profile) | 0.43 \| 0.49 | 0.27 \| 0.25 | 0.52 \| 0.48 | 1.34 \| 1.31 |
+
+- With the curve in Hasselblad RGB, a matrix and a curve fitted only on moderate colours predict the most
+  saturated ones at 2.2–2.5 instead of 6.8–6.9. Most of what looked like "3D reshaping of saturated
+  colours" is the tone curve acting in a smaller space.
+- Moderate colours still need lightness-dependent corrections: a value-independent table (C) leaves
+  0.6–0.7; adding 8 lightness levels (E) brings it to 0.37, as good as the full table. So HNCS fits a
+  DNG-style matrix + 3D LookTable + tone curve, but a DNG profile's tone curve runs in ProPhoto with
+  Adobe's hue-holding method (A2), which fits worst; its LookTable has to absorb the difference.
+
+**White balance.** Grids rendered at other As Shot white balances, against the table fitted at the host
+white balance, after a correction fitted on moderate colours (near-whites above L\* 93 left out); median
+ΔE00, moderate | all:
+
+| lens, R/B of AsShotNeutral | no correction | WB gains (diagonal) | 3×3 matrix before the table | 3×3 after (XYZ) |
+|---|---|---|---|---|
+| 35-100, host 0.625 (reference) | 0.22 \| 0.92 | 0.24 \| 0.89 | 0.21 \| 0.88 | 0.20 \| 1.02 |
+| 35-100, 0.759 (warmest) | 1.06 \| 2.25 | 1.10 \| 2.18 | **0.37 \| 1.57** | 0.43 \| 2.33 |
+| 35-100, 0.691 | 0.66 \| 1.62 | 0.65 \| 1.52 | 0.30 \| 1.21 | 0.32 \| 1.59 |
+| 35-100, 0.538 (coolest) | 0.62 \| 1.48 | 0.63 \| 1.46 | 0.34 \| 1.37 | 0.31 \| 1.45 |
+| 28P, 0.759 | 1.32 \| 2.56 | 1.40 \| 2.50 | **0.43 \| 1.74** | 0.51 \| 2.69 |
+
+- For moderate colours, the white-balance dependence is a change of colour matrix: off-diagonal terms
+  grow steadily with white balance (±0.02–0.05 between R/B 0.54 and 0.76), with opposite signs on either
+  side of the host. Plain white-balance gains do nothing.
+- Saturated colours change by more than a matrix (1.57 vs the reference 0.88), so the table or the
+  matrix's effect on saturated colours also moves.
+- Practical consequence: a tungsten profile (open question 2) could start from E5 plus a matrix
+  extrapolated along this trend, then be refined on tungsten grids.
+
+### Finding 15: the sidecar keys behind Phocus's response options
+
+**In plain terms:** Two settings in Phocus's sidecar change the rendering of X2D II files. `FilmCurve` 0
+gives a brighter tone curve with the same colour stage; `ColorModel` 1 changes colour as well as tone.
+The other values of those keys, and the `Mode` key, do nothing. Phocus's Reproduction tool offers four
+responses (Standard, Reproduction, Reproduction Low Gain, Negative); which keys each one sets needs a
+look at a sidecar after choosing it in the app.
+
+Same grid, one key changed from the Standard sidecar (`FilmCurve` 4, `ColorModel` 0, `Mode` 0):
+
+| setting | median ΔE00 vs Standard | grey L\* at camera 0.05 / 0.18 / 0.45 | chroma ratio | median \|Δhue\| |
+|---|---|---|---|---|
+| Standard | — | 29.4 / 57.5 / 84.9 | | |
+| `FilmCurve` 0 | 6.10 | 42.3 / 70.8 / 91.3 | 1.004 | 3.0° |
+| `FilmCurve` 5 (1–3 earlier) | 0.00 | same | | |
+| `ColorModel` 1 | 3.63 | 36.9 / 59.6 / 87.6 | 1.058 | 1.9° |
+| `ColorModel` 2, 3; `Mode` 1, 2 | 0.00 | same | | |
+
+- `FilmCurve` 0 is a pure tone change (Finding 14: one Hasselblad RGB curve explains it to 0.31).
+  `ColorModel` 1 isn't: no per-channel curve in any of the three spaces explains it (best 2.5), so it
+  selects a different colour transform.
+- Phocus's menu strings for `FilmCurve` are As Shot, Standard, Low Contrast, High Contrast, Old Standard,
+  Linear (0–5), yet 1–5 render identically for X2D II files and real sidecars carry 4. Those names
+  probably belong to older backs.
+
+### Finding 16: the factory gains are a green gain and a blue gain
+
+**In plain terms:** The two calibration numbers each X2D II stores (Finding 2) act as a green gain and a
+blue gain on the camera's raw colour, with no effect on red. The effect is the same for both lenses and
+nearly the same at tungsten, and changing both numbers combines the two effects. A file with the numbers
+zeroed renders as if they were about 2.1. Adding the green gain to the per-body tool made the check
+against another camera's photos slightly better, including lightness.
+
+Camera-RGB gains (all three free) that make the E5 table reproduce Phocus's change, and the median ΔE00
+left over:
+
+| grid | gains (g1, g2) | kR | kG | kB | left over |
+|---|---|---|---|---|---|
+| 35-100, host WB | 2.20, 2.26 | 1.0009 | 0.9881 | 1.0013 | 0.05 |
+| | 3.00, 2.26 | 0.9991 | 1.0118 | 0.9987 | 0.05 |
+| | 2.20, 2.66 (both) | 0.9996 | 0.9871 | 1.0129 | 0.06 |
+| | 0, 0 | 1.0015 | 0.9825 | 0.9940 | 0.07 |
+| 28P | 2.20, 2.26 | 1.0014 | 0.9888 | 1.0020 | 0.06 |
+| | 2.60, 2.66 | 1.0000 | 1.0001 | 1.0129 | 0.03 |
+| 35-100, tungsten WB (R/B 1.28) | 2.20, 2.26 | 1.0005 | 0.9911 | 1.0052 | 0.08 |
+| | 2.60, 2.66 | 1.0003 | 1.0026 | 1.0145 | 0.07 |
+
+- Rule: **kG = (g1 / 2.600)^0.077, kB = (g2 / 2.260)^0.078**, kR = 1 (owner's body as reference).
+  Finding 13's formula (red and blue, green fixed) gave the same colour but missed the brightness change
+  (grey L\* −0.28 when g1 drops to 2.2); that was its 0.23 left over.
+- Lens: none (28P matches the 35-100 to 0.001). White balance: at tungsten the green effect is about a
+  quarter weaker and brings a small blue change; the same rule still leaves only 0.24 vs 0.21.
+- Both changed: the effects multiply (kG 0.9871 vs 0.9881 alone; kB 1.0129 vs 1.0128 alone).
+- Zero: equivalent to g1 ≈ 2.07, g2 ≈ 2.09 under the rule, so probably a default near 2.1.
+- Check on 32 DPReview photos (body gains 2.363, 2.518), frame centre, E5 35-100:
+
+| per-body correction | median ΔE00 | median ΔL\* | greys Δa\* / Δb\* |
+|---|---|---|---|
+| none | 1.23 | +0.71 | −0.52 / +0.53 |
+| Finding 13 formula (1.0068, 1, 1.0169) | 1.02 | +0.70 | −0.08 / −0.03 |
+| green/blue rule (1, 0.9927, 1.0085) | **0.96** | **+0.56** | −0.08 / +0.01 |
+
+- `tools/body_gains.py` now prints `--input-gain 1,kG,kB`.
+
+### Finding 17: no focus-distance dependence on the 35-100, or on the 28P at f/5.6 and f/8
+
+**In plain terms:** Changing where the lens was focused doesn't change Phocus's corrections for either
+lens, from the centre to the corners, with lens corrections on or off. The blog's focus effect was on the
+XCD 55V and 90V, which remain untested here.
+
+Synthetic L\* 40 flat fields in matched pairs of the owner's raws (same focal length and aperture,
+BaselineExposure set to 0 in all); green gain near − far, in stops, at r 0.6 / 0.8 / 0.95, and the largest
+colour (B/G, R/G) difference:
+
+| pair | corrections | green difference | colour |
+|---|---|---|---|
+| 35-100 100 mm f/8, 5.7 m vs ∞ | on | −0.000 / −0.002 / +0.013 | ≤ 0.001 |
+| | off | −0.000 / −0.001 / −0.001 | ≤ 0.001 |
+| 35-100 40 mm f/8, 1.9 m vs 5.7 m | on, off | ≤ 0.000 everywhere | ≤ 0.001 |
+| 28P f/8, 0.75 m vs ∞ | on | +0.002 / +0.003 / −0.001 | ≤ 0.001 |
+| 28P f/5.6, 0.75 m vs 7.9 m | on | +0.004 / +0.004 / −0.000 | ≤ 0.005 |
+
+- The closest matched 35-100 frame was 1.9 m, so close focus on the zoom isn't covered.
+- Side note: the 28P's correction at r 0.95 is +2.46 stops at f/5.6 and +2.29 at f/8 (+0.84 for the
+  35-100 at 40 mm f/8).

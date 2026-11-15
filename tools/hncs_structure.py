@@ -5,7 +5,13 @@ Reports:
   2. how well models of increasing complexity explain the data, on held-out patches:
      A  3x3 matrix -> ProPhoto -> one tone curve applied to each channel ("per-channel", like a classic DNG)
      B  3x3 matrix -> tone curve applied to luminance, chroma kept ("hue-preserving")
+     A3 3x3 matrix -> Hasselblad RGB (primaries of Phocus's bundled "Hasselblad RGB.icc") -> one tone curve
+        applied to each channel
+     A2 3x3 matrix -> ProPhoto -> tone curve the way Adobe's DNG pipeline applies it (curve on the largest
+        and smallest channel, middle channel interpolated so the hue holds)
      C  A plus a 2.5-D hue/saturation table (hue x saturation bins, value-independent; like a DCP LookTable)
+     E  A plus a 3-D hue/saturation/lightness table (36 x 10 x 8, interpolated; like a DCP LookTable with
+        value divisions)
      D  the full 3-D LUT (33^3, as fitted for the profile)
   3. hue constancy: hue angle change when a colour is brightened (same camera RGB ratios, more exposure);
   4. gamut: Phocus output channels at 0 or full scale.
@@ -16,7 +22,9 @@ import os
 import sys
 
 import numpy as np
+from scipy import sparse
 from scipy.optimize import least_squares
+from scipy.sparse.linalg import lsqr
 
 sys.path.insert(0, os.path.dirname(__file__))
 from fit import KNOTS, predict, tone  # noqa: E402
@@ -69,6 +77,24 @@ def model_B(p, x):
     return xyz_to_lab((pp * (tone(Y, p[10:]) / Y)[:, None]) @ PROPHOTO_M.T)
 
 
+HB_M = np.array([[0.6491, 0.2989, 0.0046], [0.1886, 0.6575, 0.043], [0.1265, 0.0437, 0.7772]])  # rgb @ HB_M = XYZ (D50)
+
+
+def model_A3(p, x):
+    # per-channel tone curve in Hasselblad RGB
+    pp = np.maximum((x @ p[:9].reshape(3, 3).T) * np.exp(p[9]), 0)
+    return xyz_to_lab(tone(pp, p[10:]) @ HB_M)
+
+
+def model_A2(p, x):
+    # Adobe-style RGB tone: curve on the max and min channel, middle channel keeps its relative position
+    pp = np.maximum((x @ p[:9].reshape(3, 3).T) * np.exp(p[9]), 0)
+    hi, lo = pp.max(1), pp.min(1)
+    t_hi, t_lo = tone(hi, p[10:]), tone(lo, p[10:])
+    frac = np.where((hi - lo > 1e-12)[:, None], (pp - lo[:, None]) / np.maximum(hi - lo, 1e-12)[:, None], 0.0)
+    return xyz_to_lab((t_lo[:, None] + frac * (t_hi - t_lo)[:, None]) @ PROPHOTO_M.T)
+
+
 def fit(model):
     p0 = np.concatenate([np.eye(3).ravel(), [0.0], np.zeros(len(KNOTS) - 1)])
     tr = np.flatnonzero(~test & inr)
@@ -81,7 +107,9 @@ print("\n2. Model fits on held-out patches, median dE00 by camera-RGB saturation
 bands = ((0, 0.3), (0.3, 0.6), (0.6, 0.85), (0.85, 1.01))
 print("   " + " " * 42 + "  ".join(f"{lo:.2f}-{hi:.2f}" for lo, hi in bands))
 res = {}
-for name, model in (("A matrix + per-channel tone curve", model_A), ("B matrix + hue-preserving tone curve", model_B)):
+for name, model in (("A matrix + per-channel tone curve", model_A), ("A3 A with the curve in Hasselblad RGB", model_A3),
+                    ("A2 matrix + Adobe-style RGB tone curve", model_A2),
+                    ("B matrix + hue-preserving tone curve", model_B)):
     p = fit(model)
     pr = model(p, lin)
     res[name] = (p, model)
@@ -89,7 +117,9 @@ for name, model in (("A matrix + per-channel tone curve", model_A), ("B matrix +
     print(f"   {name:42s}" + "  ".join(f"{np.median(d[test & (sat_in >= lo) & (sat_in < hi)]):9.2f}" for lo, hi in bands))
 
 # C: model A + 2.5-D hue/sat table on the residual, binned by output hue and chroma
-pA, mA = res["A matrix + per-channel tone curve"]
+BASE = os.environ.get("HNCS_BASE", "A3 A with the curve in Hasselblad RGB")
+pA, mA = res[BASE]
+print(f"   (C and E are built on {BASE.split()[0]})")
 predA = mA(pA, lin)
 def lch(l):
     return np.stack([l[:, 0], np.hypot(l[:, 1], l[:, 2]), np.degrees(np.arctan2(l[:, 2], l[:, 1])) % 360], 1)
@@ -109,6 +139,54 @@ h2 = np.radians(LA[:, 2] + dh[hb, cb]); c2 = LA[:, 1] * cs[hb, cb]
 predC = np.stack([predA[:, 0], c2 * np.cos(h2), c2 * np.sin(h2)], 1)
 d = de2000(predC, lab)
 print(f"   {'C  A + 2.5-D hue/saturation table':42s}" + "  ".join(f"{np.median(d[test & (sat_in >= lo) & (sat_in < hi)]):9.2f}" for lo, hi in bands))
+
+
+def table3d(coords, target, train, shape, periodic0=True, lam=0.3):
+    # trilinear interpolation table fitted by sparse least squares with a second-difference smoothness term
+    n = len(coords); dims = np.array(shape)
+    idx0 = np.floor(coords).astype(int); fr = coords - idx0
+    rows, cols, vals = [], [], []
+    for corner in range(8):
+        off = np.array([(corner >> k) & 1 for k in range(3)])
+        ii = idx0 + off
+        ii[:, 0] = ii[:, 0] % dims[0] if periodic0 else np.clip(ii[:, 0], 0, dims[0] - 1)
+        ii[:, 1:] = np.clip(ii[:, 1:], 0, dims[1:] - 1)
+        w = np.prod(np.where(off == 1, fr, 1 - fr), axis=1)
+        rows.append(np.arange(n)); cols.append(np.ravel_multi_index(ii.T, shape)); vals.append(w)
+    Wm = sparse.csr_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(n, int(np.prod(shape))))
+    reg = []
+    for ax in range(3):
+        for flat in range(int(np.prod(shape))):
+            ii = np.array(np.unravel_index(flat, shape))
+            if ax == 0 and periodic0:
+                nb = [(ii + d * np.eye(3, dtype=int)[ax]) % np.r_[dims[0], 10**9, 10**9] for d in (-1, 1)]
+            else:
+                if ii[ax] == 0 or ii[ax] == dims[ax] - 1:
+                    continue
+                nb = [ii + d * np.eye(3, dtype=int)[ax] for d in (-1, 1)]
+            reg.append((flat, [np.ravel_multi_index(nb[0], shape), np.ravel_multi_index(nb[1], shape)]))
+    rr, cc, vv = [], [], []
+    for k, (flat, (a_, b_)) in enumerate(reg):
+        rr += [k, k, k]; cc += [flat, a_, b_]; vv += [2 * lam, -lam, -lam]
+    R = sparse.csr_matrix((vv, (rr, cc)), shape=(len(reg), int(np.prod(shape))))
+    A_ = sparse.vstack([Wm[train], R]).tocsr()
+    sol = lsqr(A_, np.concatenate([target[train], np.zeros(len(reg))]), atol=1e-8, btol=1e-8, iter_lim=5000)[0]
+    return Wm @ sol
+
+
+# E: model A + 3-D table over (hue, chroma, lightness) of the model-A prediction, correcting dL, dC and dh
+co = np.stack([LA[:, 2] / 10.0, np.clip(LA[:, 1] / 15.0, 0, 9 - 1e-6), np.clip(LA[:, 0] / 100 * 7, 0, 7 - 1e-6)], 1)
+dh_t = ((LT[:, 2] - LA[:, 2] + 180) % 360) - 180
+wgt = LA[:, 1] > 2
+for tag, trn in (("fit on saturation < 0.6", tr & wgt), ("fit on all saturations", ~test & wgt)):
+    dLp = table3d(co, LT[:, 0] - LA[:, 0], trn, (36, 9, 8))
+    dCp = table3d(co, LT[:, 1] - LA[:, 1], trn, (36, 9, 8))
+    dhp = table3d(co, np.where(wgt, dh_t, 0), trn, (36, 9, 8))
+    h3 = np.radians(LA[:, 2] + dhp); c3 = np.maximum(LA[:, 1] + dCp, 0)
+    predE = np.stack([LA[:, 0] + dLp, c3 * np.cos(h3), c3 * np.sin(h3)], 1)
+    d = de2000(predE, lab)
+    print(f"   {'E  A + 3-D table, ' + tag:42s}" + "  ".join(f"{np.median(d[test & (sat_in >= lo) & (sat_in < hi)]):9.2f}" for lo, hi in bands))
+
 d = de2000(predict(lut, lin ** (1 / 1.8)), lab)
 print(f"   {'D  full 3-D LUT (profile; trained on all)':42s}" + "  ".join(f"{np.median(d[test & (sat_in >= lo) & (sat_in < hi)]):9.2f}" for lo, hi in bands))
 print("   patches per band: " + ", ".join(str(int((test & (sat_in >= lo) & (sat_in < hi)).sum())) for lo, hi in bands))
