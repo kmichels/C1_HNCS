@@ -48,7 +48,7 @@ Everything still open, in one place. Details for the numbered questions are belo
 **Validation and writing**
 - [x] Check on photos not used in fitting: 23 frames (Finding 24). Still worth a look: new photos in
   varied light, especially tungsten and mixed light.
-- [ ] Write up the findings for blog.tonalphoto.com's author.
+- [x] Write up the findings for blog.tonalphoto.com's author: [writeup.md](writeup.md).
 
 ## 1. XCD 28P edge brightness at f/5.6 and narrower
 
