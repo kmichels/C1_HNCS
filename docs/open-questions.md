@@ -15,7 +15,10 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] HNCS structure: the 28P's is the same as the 35-100's (Finding 14).
 - [ ] Response options: `FilmCurve` 0 and `ColorModel` 1 change the rendering (Finding 15). Which menu item
   sets which? Choose each response in Phocus's Reproduction tool and read the sidecar (needs the app).
-- [ ] What does `ColorModel` 1 change in the colour stage?
+- [x] `ColorModel` 1: a separate rendering (Standard's colour stage + more exposure and saturation + a much
+  lighter shadow curve; ignores `FilmCurve`) (Finding 18).
+- [ ] `ColorWorkingSpace` 1–3 change the colour stage, not only where the curve runs (Finding 18). Which
+  spaces are they? (Check the Working Space menu against the sidecar; needs the app.)
 - [x] Factory gains: a green and a blue gain; no lens dependence, slight white-balance dependence;
   the two combine; zero acts like ~2.1 (Finding 16).
 - [x] Focus distance on the 35-100, and the 28P at f/5.6 and f/8: none (Finding 17).

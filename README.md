@@ -80,6 +80,8 @@ only together with the LCC. Without it they render slightly warm.
 - **XCD 28P at f/5.6 and narrower.** Phocus corrects vignetting more strongly than Capture One's Light
   Falloff 120, so the edges stay darker than Phocus (it matches at f/4).
 - **Variation between frames.** Some frames come out 0.5–1 L* darker than Phocus overall.
+- **Phocus defaults only.** The match is to Phocus's Standard response in its default working space.
+  Other responses or working spaces render 3–7 ΔE00 differently.
 
 More in [docs/open-questions.md](docs/open-questions.md).
 

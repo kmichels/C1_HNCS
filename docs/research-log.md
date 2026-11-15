@@ -569,3 +569,46 @@ colour (B/G, R/G) difference:
 - The closest matched 35-100 frame was 1.9 m, so close focus on the zoom isn't covered.
 - Side note: the 28P's correction at r 0.95 is +2.46 stops at f/5.6 and +2.29 at f/8 (+0.84 for the
   35-100 at 40 mm f/8).
+
+### Finding 18: ColorModel 1 is a separate rendering, and the working space changes colour too
+
+**In plain terms:** `ColorModel` 1 is a complete alternative rendering. It starts from the same colour
+stage as Standard, then adds a little exposure and saturation and a much lighter shadow curve, and treats
+saturated dark colours differently. When it's on, `FilmCurve` is ignored. Phocus's "working space"
+setting (`ColorWorkingSpace`) also changes the rendering, by more than moving the tone curve to another
+space would. All of the owner's real sidecars use the defaults that the profiles match.
+
+`ColorModel` 1 against Standard (`tools/round3/colormodel.py`), held-out median ΔE00 by camera-RGB
+saturation (0–0.3 / 0.3–0.6 / 0.6–0.85 / 0.85–1):
+
+| model of the ColorModel 1 render | | | | |
+|---|---|---|---|---|
+| Standard as is | 4.57 | 2.92 | 3.01 | 3.61 |
+| Standard with a different camera matrix in front | 4.79 | 2.97 | 3.00 | 3.79 |
+| the raw's own DNG ColorMatrix1 + a Hasselblad RGB curve | 2.37 | 2.01 | 2.64 | 3.03 |
+| Standard with a new Hasselblad RGB curve | 1.78 | 1.79 | 2.19 | 2.80 |
+| **Standard's colour stage, then a new 3×3 and a new curve in linear Hasselblad RGB** | **0.57** | **0.49** | **0.77** | **1.09** |
+
+- Greys at camera level 0.011 / 0.028 / 0.165 / 0.50: L\* 14.1 / 25.4 / 59.6 / 93.4, against Standard's
+  4.7 / 15.8 / 57.5 / 88.8. Grey tint about the same.
+- The 3×3 is about 1.11 on the diagonal and −0.01 to −0.04 off it: roughly +7% exposure and +5%
+  saturation. What's left is in saturated dark and mid colours (L\* < 70: median 1.8–2.6; lighter: 0.5).
+- Not colorimetric: the raw's DNG matrix fits it worse than it fits Standard (2.0–2.4 vs 1.4–1.7).
+- `ColorModel` 1 + `FilmCurve` 0 renders identically to `ColorModel` 1 alone (0.00).
+
+`ColorWorkingSpace` (`tools/round3/working_space.py`, `colormodel_combos.py`):
+
+| value | median ΔE00 vs Standard | grey L\* at camera 0.028 / 0.165 / 0.428 | chroma ratio | median \|Δhue\| |
+|---|---|---|---|---|
+| 0 (default) | — | 15.8 / 57.5 / 84.9 | 1.000 | — |
+| 1 | 6.55 | 14.0 / 61.3 / 86.9 | 0.883 | 5.2° |
+| 2 | 4.58 | 14.0 / 61.3 / 86.9 | 0.920 | 3.3° |
+| 3 | 2.93 | 14.0 / 61.3 / 86.9 | 1.047 | 1.7° |
+
+- Values 1–3 share one grey curve (more midtone contrast than 0) and differ in saturation and hue.
+- Undoing Standard's curve and applying a curve in another space (Hasselblad L\* RGB, ProPhoto, Rec.2020,
+  Display P3, Adobe RGB, sRGB) doesn't explain them (best 2.6–3.3 on moderate colours), so the working
+  space selects a different colour stage, as the library's colour-correction filter signature suggests.
+  The same test on the Standard render returns it exactly (0.00), which checks the method.
+- Rec.2020 comes close to Hasselblad RGB in that check (0.18): the two spaces' primaries are similar.
+- The owner's real sidecars (33) all use `ColorWorkingSpace` 0, `ColorModel` 0, `FilmCurve` 4.
