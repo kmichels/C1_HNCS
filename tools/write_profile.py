@@ -38,6 +38,7 @@ def main():
     ap.add_argument("lut_npz")
     ap.add_argument("name", help="suffix, e.g. 'HNCS E1'")
     ap.add_argument("outdir")
+    ap.add_argument("--input-gain", default=None, help="r,g,b linear gains applied before the LUT (via the input curves), e.g. to undo an LCC's global colour shift")
     args = ap.parse_args()
 
     raw = np.load(args.lut_npz)["lut"].reshape(G, G, G, 3)
@@ -45,8 +46,9 @@ def main():
 
     pro = InputProfile(IN + "HasselbladX2DII100C-ProStandard.icm")
     x = np.linspace(0, 1, 1025)
-    curve = np.round(shaper(np.stack([x] * 3, -1))[:, 0] * 65535).astype(np.uint16)
-    m = Mft2(np.eye(3), np.tile(curve, (3, 1)), lab_to_legacy16(lut), np.array([[0, 65535]] * 3, dtype=np.uint16))
+    gains = np.array([float(v) for v in args.input_gain.split(",")]) if args.input_gain else np.ones(3)
+    curves = np.stack([np.round(shaper(np.stack([np.clip(x * gains[c] ** (1 / 1.8), 0, 1)] * 3, -1))[:, 0] * 65535).astype(np.uint16) for c in range(3)])
+    m = Mft2(np.eye(3), curves, lab_to_legacy16(lut), np.array([[0, 65535]] * 3, dtype=np.uint16))
     stem = f"HasselbladX2DII100C-{args.name}"
     data = build_profile(
         pro.data[:128],
@@ -61,7 +63,7 @@ def main():
     s = rng.random((20000, 3))
     from fit import predict
     a = tetra(back.a2b0, s)
-    b = predict(lut.reshape(-1, 3), s)
+    b = predict(lut.reshape(-1, 3), np.clip((s ** 1.8 * gains) ** (1 / 1.8), 0, 1))
     err = np.abs(a - b).max()
     print(f"wrote {icc_path}; round-trip max |Lab| diff vs finalized LUT {err:.3f}")
 

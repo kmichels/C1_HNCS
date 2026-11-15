@@ -83,3 +83,39 @@ Measured edge lifts (Phocus, lens corrections off, `--lift` values):
 Pairs, renders and exports are large and are not committed (`data/` is git-ignored). `fit/configs/e4.json`
 expects `data/pairs_28p_lifted`, `data/pairs_35100_lifted` and `data/pairs_e4_lifted`. Regenerate them with
 steps 1–5, or ask the repo owner for the pairs archive.
+
+## Synthetic raws (E5)
+
+Measure Phocus with designed inputs instead of photographs. Background and results:
+[../docs/research-log.md](../docs/research-log.md).
+
+**Drive Phocus's hot folder without its GUI.** Quit Phocus, then:
+
+```sh
+defaults export dk.hasselblad.phocus phocus-prefs-backup.plist      # keep a copy
+defaults write dk.hasselblad.phocus AutoExport -int 1
+defaults write dk.hasselblad.phocus exportDirectory -string "$HOME/Pictures/Phocus synth"
+open -a Phocus
+```
+
+Phocus watches the folder its browser last showed, and exports with the last-used output preset (set a
+16-bit ProPhoto TIFF preset once). For each file, copy `<name>.3fr.phos` (a sidecar with the wanted
+settings: Standard, HDR off, `LensCorrection` 0 or 4, `ColorTemperature` 0 for As Shot) into the folder
+first, then the raw. The export appears in about 10 s, and the sidecar's `ExportName` names it.
+Afterwards, restore with `defaults import dk.hasselblad.phocus phocus-prefs-backup.plist`. Don't send
+AppleScript to Phocus: it triggers a macOS automation prompt.
+
+| Tool | Purpose |
+|---|---|
+| `make_synthetic_raw.py HOST.3fr OUT.3fr [--levels 33 --part i/N] [--neutral-from RAW] [--flat L]` | Patch grid (or a flat grey) in a copy of a real raw; `--neutral-from` sets white balance |
+| `applescript/render_probe_all.applescript` and the per-file probe script pattern | Capture One probe renders (camera RGB per patch) |
+| `synth_compare.py` | Compare Phocus exports of synthetic files that share a patch layout |
+| `makernote_transplant.py TARGET DONOR OUT TAGS` | Copy maker-note entries between raws in place (bisection) |
+| `fit_synthetic.py OUT --synth NAME:PATCHES:C1.tif:PHOCUS.tif … --gainmap MAP` | Fit a table on synthetic pairs; score on real pairs |
+| `flat_gain.py LUT PHOCUS_FLAT_EXPORT OUT` | Phocus's per-channel spatial gain from a flat-field export |
+| `compare_gain_maps.py C1_FLAT_RENDER PHOCUS_MAP` | Capture One's spatial gain (Light Falloff, LCC) vs Phocus's |
+| `make_lcc_raw.py HOST OUT --colour MAP` | LCC reference raw that reproduces a colour shading map |
+| `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
+
+`fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
+`fit/synthetic/flat_maps/` the flat-field gain maps, so E5 can be refitted without Phocus.

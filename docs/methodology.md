@@ -1,6 +1,7 @@
 # Methodology
 
-How HNCS E4 was built and tested. The plan written before any of this is in
+How the HNCS profiles were built and tested (E1–E4 from real photos; E5 from synthetic raws, at the
+end). The plan written before any of this is in
 [original-design.md](original-design.md); the numbers are in [results.md](results.md); the step-by-step
 for re-running it is in [../tools/README.md](../tools/README.md).
 
@@ -106,8 +107,8 @@ E4 trained on 44 frames (7 from your 28P, 14 from your 35-100, 23 from DPReview)
 On near-grey blocks, where scene content can't matter, Phocus and the fitted profile disagree by a
 different, steady amount for each source: about +0.2 b* on your 35-100, −0.8 on your 28P, +1.0 b*
 (and −0.6 a*) on the DPReview frames. Within a source it doesn't follow white balance. The DPReview
-raws come from pre-release firmware (1.1.6.3, against 1.3.16.2 on yours), which may be the reason;
-see [open-questions.md](open-questions.md).
+raws turned out to differ by a factory calibration record in the maker note (two channel gains Phocus
+uses to normalise each body; Capture One ignores them), found with synthetic raws (below).
 
 A plain fit on everything splits the difference and pulls your frames off. So `fit_anchored.py`
 gives the DPReview source its own offset, modelled like a white-balance difference
@@ -148,6 +149,36 @@ few frames from Phocus with corrections on, render them in Capture One with the 
 0, 60, 80, 100 and 120, and score the whole frame including the corners. 120, the maximum, is best for
 both lenses (see results). Since it's the same for both, the `+ Light Falloff 120` style sets it. The style leaves the lens curve blank and sets only the amount, so Capture One keeps using the
 right lens, focal length and aperture curve.
+
+## Synthetic raws (E5)
+
+Full detail, with every number, is in [research-log.md](research-log.md). In short:
+
+- **Writing raws.** X2D II raws store the sensor data uncompressed (RGGB, 16-bit, black 4096). A copy of
+  a real raw with its active area replaced by flat colour patches is rendered by both apps like any
+  other file (`tools/make_synthetic_raw.py`). White balance is set by writing another frame's
+  AsShotNeutral (IFD0 and the maker-note copy); both apps read it.
+- **Driving Phocus without its GUI.** Turn on its hot folder in the preferences (`AutoExport`,
+  `exportDirectory`), drop a `.phos` sidecar with the wanted settings, then the raw; the export appears
+  in about 10 s.
+- **What changes Phocus's output.** Transplanting metadata between otherwise identical files
+  (`tools/makernote_transplant.py`): firmware string and serial have no effect. Maker-note entry 0x0019,
+  a factory "GAIN" calibration record, does. Within it, only two half-float channel gains matter.
+- **Lens metadata.** The same pixels tagged XCD 28P render 0.8 L* darker at the centre than tagged XCD
+  35-100.
+- **Spatial processing.** Synthetic flat fields inverted through a centre-accurate table give Phocus's
+  per-channel gain across the frame (`tools/flat_gain.py`):
+  - a lens-specific colour shading (less blue toward the edges, on or off);
+  - a brightness lift with corrections off;
+  - full vignetting correction with corrections on, depending on aperture and focal length.
+- **White balance.** Phocus's colour depends on white balance even within daylight (about 0.5–1 ΔE00
+  per 25% change in the blue/red balance), so E5 is fitted across six white balances.
+- **Matching the spatial part in Capture One.**
+  - Light Falloff does brightness only.
+  - The colour shading comes from an LCC built from a synthetic reference raw (`tools/make_lcc_raw.py`).
+  - Capture One's LCC colour correction is (reference mean ÷ reference)^1.14 per channel. So the maps
+    are scaled by 0.875, and the E5 "LCC" profiles undo the LCC's overall colour shift in their input
+    curves.
 
 ## Gotchas found along the way
 

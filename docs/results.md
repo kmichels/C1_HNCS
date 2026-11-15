@@ -12,7 +12,45 @@ processing, so a per-frame median well under 1 is near the practical floor for t
 reference, the Lightroom profile by blog.tonalphoto.com that inspired this project reached a median
 of 0.94.
 
-## HNCS E4 (current)
+## HNCS E5 (current, per lens, with an LCC)
+
+Fitted only on synthetic raws (colour patches with exactly known camera RGB, written into copies of
+the owner's raws and rendered by Phocus): per lens, a 33³ grid at one white balance plus 22³ grids at
+five more white balances taken from the owner's frames, about 82,000 patches. Phocus's own spatial
+gain (measured with synthetic flat fields) is removed from each patch, so the table describes the
+frame centre. Method and all intermediate results: [research-log.md](research-log.md).
+
+Frame centre (r < 0.2), real photos, none used in fitting:
+
+| | E5 | E4 |
+|---|---|---|
+| XCD 35-100, E4's 5 held-out frames | **0.52** | 0.72 |
+| XCD 35-100, all 19 frames | 0.52 | 0.55 (E4 trained on 14 of them) |
+| XCD 28P, E4's 3 held-out frames | **0.50** | 0.69 |
+| XCD 28P, all 10 frames | 0.59 | 0.69 |
+
+Full chain in real Capture One renders against Phocus with lens corrections on, whole frame
+(r < 0.95):
+
+| Frame | E4 + Light Falloff 120 | E5 LCC profile + Light Falloff 120 + colour LCC |
+|---|---|---|
+| 28P B0000901 (f/16) | 2.19 | 1.56 |
+| 28P B0000917 (f/5.6) | 2.11 | 1.56 |
+| 28P B0000931 (f/8) | 2.37 | 1.43 |
+| 35-100 B0000623 (35 mm) | 1.08 | 0.76 |
+| 35-100 B0000679 (35 mm) | 1.10 | 0.69 |
+| 35-100 B0000702 (50 mm) | 0.65 | 0.73 |
+
+- 35-100 corners (r 0.8–1.0) improve from 1.2–1.6 to 0.7–0.9.
+- On the 28P the edge colour now matches. What remains is edge brightness at f/5.6–f/16 (dL −3 to
+  −7 at r 0.6–1.0), where Phocus corrects vignetting more than Light Falloff 120 does.
+
+The LCC references are written from Phocus's measured colour shading (`fit/lcc/`, built into a raw
+with `tools/make_lcc_raw.py`). Capture One's LCC colour correction is (reference mean ÷ reference)^1.14
+per channel, so the maps are scaled by 0.875, and the E5 "LCC" profiles carry the inverse of the
+LCC's overall colour shift in their input curves (`fit/lcc/input_gains.txt`).
+
+## HNCS E4
 
 Fitted on 44 frames from three sources and scored on 17 frames it never saw:
 
