@@ -1,6 +1,6 @@
 # Methodology
 
-How HNCS E3 was built and tested. The plan written before any of this is in
+How HNCS E4 was built and tested. The plan written before any of this is in
 [original-design.md](original-design.md); the numbers are in [results.md](results.md); the step-by-step
 for re-running it is in [../tools/README.md](../tools/README.md).
 
@@ -54,10 +54,14 @@ probe profile, film curve Linear Response, sharpening and noise reduction 0, Lig
 distortion and sharpness falloff 0. Export 16-bit TIFF in ROMM RGB at the same scale as the Phocus
 export.
 
-**The frames.** 10 frames from the XCD 28P and 19 from the XCD 35-100 (35–100 mm, f/8–f/16), mostly
-daylight outdoor scenes. The 35-100 frames were picked from a larger shoot to cover as many hues as
-possible. One more 35-100 frame was left out because Phocus
-exported it with its in-camera 65:24 crop.
+**The frames.**
+- Your own: 10 frames from the XCD 28P and 19 from the XCD 35-100 (35–100 mm, f/8–f/16), mostly
+  daylight outdoor scenes, the 35-100 ones picked from a larger shoot to cover as many hues as
+  possible. One more was left out because Phocus exported it with its in-camera 65:24 crop.
+- From [DPReview's X2D II sample gallery](https://www.dpreview.com/sample-galleries/4239298554/hasselblad-x2d-ii-100c-sample-gallery):
+  33 raws, all XCD 35-100, ISO 50–25600, about 18 of them portraits across a wide range of skin
+  tones, plus saturated reds, neon, sunsets and warm indoor light. Exported from Phocus at 50%.
+  The ISO 25600 frame was dropped as an outlier.
 
 ## Pairing
 
@@ -82,7 +86,7 @@ That leaves about 34,000–41,000 blocks per frame.
 
 - **W**: the block weights. **Lab**: Phocus's block means.
 - **D**: second differences along each grid axis, so the table stays smooth where the data is
-  thin. λs is picked by cross-validation, leaving one frame out at a time (E3 chose 1).
+  thin. λs is picked by cross-validation, leaving one frame out at a time (E3 and E4 both chose 1).
 - **Base**: a smooth parametric model (3 × 3 matrix → ProPhoto → a shared monotone tone curve), fitted
   to the same data. A tiny ridge (λr = 0.001) pulls nodes with no data toward it, so colours that
   never appeared in the training frames still get something sensible.
@@ -94,8 +98,35 @@ That leaves about 34,000–41,000 blocks per frame.
 `write_profile.py` writes the table using the ProStandard header and the same L*-spaced input curves
 as the probe, plus a style that sets only the profile and the Linear Response film curve.
 
-E3 trained on 21 frames (7 from the 28P and 14 from the 35-100) and was scored on 8 frames it never
-saw (3 from the 28P and 5 from the 35-100).
+E4 trained on 44 frames (7 from your 28P, 14 from your 35-100, 23 from DPReview) and was scored on
+17 it never saw (3, 5 and 9). The frames and settings are in `fit/configs/e4.json`.
+
+## Mixing sources
+
+On near-grey blocks, where scene content can't matter, Phocus and the fitted profile disagree by a
+different, steady amount for each source: about +0.2 b* on your 35-100, −0.8 on your 28P, +1.0 b*
+(and −0.6 a*) on the DPReview frames. Within a source it doesn't follow white balance. The DPReview
+raws come from pre-release firmware (1.1.6.3, against 1.3.16.2 on yours), which may be the reason;
+see [open-questions.md](open-questions.md).
+
+A plain fit on everything splits the difference and pulls your frames off. So `fit_anchored.py`
+gives the DPReview source its own offset, modelled like a white-balance difference
+(k · (L* + 16) / 116 per Lab channel, so it vanishes at black), and solves for the table and the offset
+together. Your frames set the overall balance; the DPReview frames contribute only where colours sit
+relative to grey, which is what adds skin tones and saturated colours. Your two lenses are averaged.
+
+## White balance
+
+Phocus's rendering depends on white balance: Hasselblad told blog.tonalphoto.com that HNCS is
+"strongly linked to white balance parameters". Measured here by exporting the DPReview raws twice,
+at As Shot and at Daylight: frames between about 4800 and 6500 K score the same, but the three
+tungsten-lit frames (about 3400 K) are 1.6–2.1 ΔE00 off at As Shot against 0.5–0.7 at Daylight. So the
+profile is for daylight-range white balance.
+
+To pair a Phocus export made at fixed white-balance numbers, Capture One needs the same white
+balance. The camera's Daylight preset shows as 5500 K / −0.0033 in Phocus and 5463 K / +2.69 in
+Capture One; renders at those settings match the frames whose As Shot is that preset (channel ratio
+1.000). `render_probe_all.applescript` takes a temperature and tint for this.
 
 ## Edge brightening
 
@@ -113,10 +144,9 @@ absorbed this as an error that grew with distance from the centre. The fix (E2):
 
 Most people use Phocus with lens corrections on, which adds a strong vignetting correction. Capture
 One's equivalent is Light Falloff, applied before the profile. It was matched empirically: export a
-few frames from Phocus with corrections on, render them in Capture One with HNCS E3 at Light Falloff
+few frames from Phocus with corrections on, render them in Capture One with the fitted profile (E2/E3) at Light Falloff
 0, 60, 80, 100 and 120, and score the whole frame including the corners. 120, the maximum, is best for
-both lenses (see results). Since it's the same for both, the `HNCS E3 + Light Falloff 120` style sets
-it. The style leaves the lens curve blank and sets only the amount, so Capture One keeps using the
+both lenses (see results). Since it's the same for both, the `+ Light Falloff 120` style sets it. The style leaves the lens curve blank and sets only the amount, so Capture One keeps using the
 right lens, focal length and aperture curve.
 
 ## Gotchas found along the way
@@ -125,12 +155,17 @@ right lens, focal length and aperture curve.
 
 - The factory TIFF-16 output preset is locked to Adobe RGB. Duplicate it to pick ProPhoto.
 - HDR mode produces a PQ-encoded TIFF. Turn it off.
-- Modify → Current copies one image's white-balance numbers to every selected image. Avoid it.
+- Modify → Current copies one image's white-balance numbers to every selected image. The Modify
+  dialog also starts with every box ticked, so applying a preset to a batch through it copies white
+  balance too. Afterwards, check each sidecar's `ColorTemperature`: 0 means As Shot.
 - Picking As Shot stores the image's own numbers, and the menu then shows "Custom". That renders the
   same as As Shot (checked: 0.13 ΔE00 between the two).
 - Settings live in `<raw>.phos` sidecars (plists). `CurrentIx` picks the active entry, and they're
   only written when you export. `ReferenceSettingName` shows the preset ("Standard+").
-- Exports get renamed with a counter (`B_0004_prv.tif`) and may land in a `Previews` subfolder.
+- Exports get renamed with a counter (`B_0004_prv.tif`) and may land in a `Previews` subfolder. Each
+  sidecar's `ExportName` records which export came from it; `pair_session.py` uses that.
+- Raws can carry a BaselineExposure tag (IFD0 50730; 0, +1 or +2 EV on the DPReview frames). Phocus
+  and Capture One both apply it, so it needs no handling.
 
 **Capture One**
 
@@ -142,9 +177,12 @@ right lens, focal length and aperture curve.
 ## Limits
 
 - **One camera.** The profile only applies to the X2D II 100C.
-- **Limited scenes.** It was trained on 29 mostly daylight outdoor frames from two lenses. Skin tones,
-  tungsten or mixed light, and saturated artificial colours weren't in the data; there the table
-  follows the smooth base model and is untested.
+- **Scenes.** Your frames are daylight outdoor scenes; the DPReview frames add portraits, saturated
+  and artificial colours and warm light, but from another body, so their overall balance is
+  offset to yours. Colours in neither set follow the smooth base model and are untested.
+- **White balance.** Daylight range only (about 4800–6500 K). Tungsten needs its own profile.
+- **Lenses.** Phocus renders greys about 1 b* differently on the 28P and the 35-100; the profile
+  averages them.
 - **Per-frame exposure.** Some frames come out 0.5–1 L* darker than Phocus overall. The cause is
   unknown and a profile can't fix it.
 - **Highlights.** Above Phocus's white (L* 95+) the table fades to neutral, and Capture One's
@@ -155,8 +193,6 @@ right lens, focal length and aperture curve.
 
 ## Ideas for next steps
 
-- Shoot an LCC flat-field for the 28P (or per lens/aperture) to close the corner gap.
-- Add frames with people, interiors and tungsten light, then check whether one profile still holds
-  across white balance.
-- Add more lenses. For each new lens, measure its edge lift (step 6 in the tools README) and run a
-  Light Falloff check.
+See [open-questions.md](open-questions.md): per-lens profiles, a tungsten profile, the source offset,
+the 28P corners. For each new lens, measure its edge lift (step 6 in the tools README) and run a
+Light Falloff check.

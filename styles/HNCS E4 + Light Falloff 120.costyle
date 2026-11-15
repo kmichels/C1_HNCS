@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <SL Engine="1300">
 	<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />
-	<E K="ICCProfile" V="HasselbladX2DII100C-HNCS E3.icm" />
+	<E K="ICCProfile" V="HasselbladX2DII100C-HNCS E4.icm" />
 	<E K="LensLightFallOff" V="|120|1" />
-	<E K="Name" V="HNCS E3 + Light Falloff 120" />
+	<E K="Name" V="HNCS E4 + Light Falloff 120" />
 	<E K="StyleSource" V="Styles" />
-	<E K="UUID" V="4D7DD5C6-4484-458D-9294-E0D8B5DCF558" />
+	<E K="UUID" V="A9BFBCBE-4E13-4F50-AA1B-BC1C64F5F307" />
 </SL>

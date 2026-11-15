@@ -3,7 +3,7 @@
 Every panel is drawn from per-block mean Lab on the same grid, so the three columns line up exactly
 and each panel's number is the median dE00 against the Phocus panel in that row.
 
-usage: python contact_sheet.py OUT.jpg [--width 300] \
+usage: python contact_sheet.py OUT.jpg [--width 300] [--cols "A|B|C"] [--footer "text"] \
          --row "label" PAIRS.npz BLOCK PHOCUS_LAB.npz HNCS.tif DEFAULT.tif [--row ...]
   PAIRS.npz      pairs.py output for the frame (gives the block grid and alignment)
   BLOCK          block size of that grid at the renders' scale (16 for half-size renders of a 32 px grid)
@@ -45,12 +45,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out")
     ap.add_argument("--width", type=int, default=300)
+    ap.add_argument("--cols", default="Phocus (HNCS)|Capture One + HNCS|Capture One default")
+    ap.add_argument("--footer", default="")
     ap.add_argument("--row", nargs=6, action="append", required=True, metavar=("LABEL", "PAIRS", "BLOCK", "PHOCUS", "HNCS", "DEFAULT"))
     args = ap.parse_args()
 
     W = args.width
     pad, head, cap = 12, 34, 22
-    cols = ["Phocus (HNCS)", "Capture One + HNCS E3", "Capture One default"]
+    cols = args.cols.split("|")
     rows = []
     for label, pairs, bs, ph, hncs, default in args.row:
         z = np.load(pairs)
@@ -73,7 +75,8 @@ def main():
 
     H_rows = [r[1][0].height for r in rows]
     sheet_w = pad + 3 * (W + pad)
-    sheet_h = head + sum(h + cap + pad for h in H_rows) + pad
+    foot = 24 if args.footer else 0
+    sheet_h = head + sum(h + cap + pad for h in H_rows) + pad + foot
     sheet = Image.new("RGB", (sheet_w, sheet_h), (24, 24, 24))
     d = ImageDraw.Draw(sheet)
     fb, fr = font(15, bold=True), font(13)
@@ -87,6 +90,8 @@ def main():
             text = label if i == 0 else f"median ΔE00 {scores[i]:.2f} vs Phocus"
             d.text((x, y + h + 4), text, fill=(200, 200, 200), font=fr)
         y += h + cap + pad
+    if args.footer:
+        d.text((pad, sheet_h - foot), args.footer, fill=(170, 170, 170), font=fr)
     sheet.save(args.out, quality=85, optimize=True, progressive=True)
     print(f"wrote {args.out} {sheet.size} {os.path.getsize(args.out) / 1024:.0f} KB")
     for label, _, scores in rows:

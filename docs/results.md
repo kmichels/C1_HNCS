@@ -1,50 +1,80 @@
 # Results
 
 All numbers are CIEDE2000 (ΔE00) between Capture One and Phocus, computed on per-block mean Lab.
-For the 28P the blocks are 32 × 32 px at full size; for the 35-100, 16 × 16 px at half size, which is
-the same area of the frame. Unless stated otherwise, blocks with clipped channels are excluded, and
-so is everything beyond 50–60% of the half-diagonal from the centre. "Median" is the median over blocks
-in a frame.
+For full-size renders the blocks are 32 × 32 px; for half-size renders, 16 × 16 px, which is the same
+area of the frame. Unless stated otherwise, blocks with clipped channels are excluded, and so is
+everything beyond 50–60% of the half-diagonal from the centre. "Median" is the median over blocks in
+a frame.
 
 **How close is close?** The same camera RGB, in different frames, lands a median of **1.6 ΔE00** apart in
-Phocus (6,148 cross-frame pairs from the 28P frames). Blocks mix textures and Phocus does some local processing, so a
-per-frame median well under 1 is near the practical floor for this measurement. For reference, the
-Lightroom profile by blog.tonalphoto.com that inspired this project reached a median of 0.94.
+Phocus (6,148 cross-frame pairs from the 28P frames). Blocks mix textures and Phocus does some local
+processing, so a per-frame median well under 1 is near the practical floor for this measurement. For
+reference, the Lightroom profile by blog.tonalphoto.com that inspired this project reached a median
+of 0.94.
 
-## HNCS E3 (current)
+## HNCS E4 (current)
 
-Frames held out of the fit, rendered for real in Capture One with the HNCS E3 style and Light
-Falloff 0, compared with Phocus (lens corrections off) within 30% of the half-diagonal from the centre:
+Fitted on 44 frames from three sources and scored on 17 frames it never saw:
 
-| Frame | Lens | Capture One + HNCS E3 | E2 (previous profile), LUT prediction, same region |
-|---|---|---|---|
-| 912 | XCD 28P | 0.67 | 0.51 |
-| 929 | XCD 28P | 0.72 | 1.33 |
-| 939 | XCD 28P | 0.86 | 0.82 |
-| 623 | XCD 35-100 @ 35 mm | 0.81 | 1.57 |
-| 679 | XCD 35-100 @ 35 mm | 0.99 | 1.54 |
-| 703 | XCD 35-100 @ 35 mm | 0.67 | 1.20 |
-| 829 | XCD 35-100 @ 80 mm | 0.63 | 1.36 |
-| 863 | XCD 35-100 @ 35 mm | 0.54 | 0.89 |
-
-- Capture One reproduces the fitted LUT closely: on the 35-100 frames, render vs prediction differs by
-  about 0.2 L* or less in every tone band, with chroma within 0.3.
-- What's left is mostly frame-to-frame exposure: a few frames are 0.5–1 L* darker than Phocus
-  everywhere, centre included. One profile can't absorb that, because it changes from frame to frame.
-- E2 was fitted on the 28P alone and rendered the 35-100 about 1.5 b* more yellow than Phocus. E3 was
-  fitted on both lenses and removes that shift without hurting the 28P.
-
-Earlier experiments on the same three held-out 28P frames (912 / 929 / 939):
-
-| Version | What changed | Median ΔE00 |
+| Source | Frames (train / held out) | Firmware |
 |---|---|---|
-| Capture One default (ProStandard, Auto curve) | — | 4.50 / 3.84 / 3.27 |
-| E1, real renders | First fitted profile, 28P only | 0.86 / 1.19 / 0.95 |
-| E2, LUT prediction | Phocus edge brightening removed before fitting | 0.62 / 1.07 / 0.81 |
-| E3, LUT prediction | Both lenses | 0.60 / 1.01 / 0.85 |
+| Your XCD 28P | 7 / 3 | 1.3.16.2 |
+| Your XCD 35-100 | 14 / 5 | 1.3.16.2 |
+| [DPReview's X2D II sample gallery](https://www.dpreview.com/sample-galleries/4239298554/hasselblad-x2d-ii-100c-sample-gallery), XCD 35-100 | 23 / 9 (one ISO 25600 frame dropped) | 1.1.6.3 |
+
+The DPReview raws were used for fitting only and aren't redistributed here. They add what the
+landscape frames lacked: about 18 portraits across a wide range of skin tones, saturated reds, neon,
+sunsets and warm indoor light.
+
+Held-out medians (LUT prediction vs Phocus; E3 for comparison):
+
+| Held-out frames | HNCS E4 | HNCS E3 |
+|---|---|---|
+| Your 28P (912, 929, 939) | 0.62 / 0.99 / 0.84 → **0.81** | 0.82 |
+| Your 35-100 (623, 679, 703, 829, 863) | 0.69 / 0.86 / 0.71 / 0.57 / 0.70 → **0.71** | 0.71 |
+| DPReview, with its source offset applied | 0.35–0.83 → **0.57** | 1.24 |
+| DPReview portraits (4 of the 9) | 0.35–0.83 | 1.0–1.7 |
+
+Real Capture One renders of the 9 held-out DPReview frames with the `HNCS E4` style: **0.27** from the
+LUT's prediction, **0.60** from Phocus with the source offset applied, 0.90 from Phocus without it.
+
+### Greys differ by source
+
+On near-grey blocks, E3's prediction minus Phocus:
+
+| Source | Offset on greys |
+|---|---|
+| Your body + 35-100 | about +0.2 b* |
+| Your body + 28P | −0.5 to −1.4 b* |
+| DPReview body + 35-100 | +1.01 b* (±0.18 over 25 frames), about −0.6 a* |
+
+Within a source the offset is steady and doesn't follow white balance (correlation −0.04 over
+4900–6500 K). One profile can't match greys for all three, so E4 lets your frames set the overall
+balance and gives the DPReview source its own fitted offset (+2.0 b*, −1.1 a*, +0.3 L* at L* 100,
+scaling with lightness: about +1.1 b*, −0.6 a* at mid-grey). Your two lenses are averaged. Causes
+and tests are in [open-questions.md](open-questions.md).
+
+### White balance range
+
+Rendering the same 33 DPReview raws at As Shot instead of Daylight:
+
+- Frames with As Shot between about 4800 and 6500 K score the same either way.
+- The three tungsten-lit frames (As Shot about 3400 K) score **1.6–2.1** at As Shot, against 0.5–0.7
+  when rendered at Daylight.
+
+So HNCS E4 covers daylight-range white balance. Tungsten needs its own profile
+([open questions](open-questions.md#2-tungsten-white-balance-needs-its-own-profile)).
+
+### BaselineExposure
+
+Many X2D II raws carry a BaselineExposure tag (IFD0 50730): 0, +1 or +2 EV on the DPReview frames, up
+to +0.76 on the 28P frames, 0 on the 35-100 frames. Both Phocus and Capture One apply it: tagged frames
+fit as well as untagged ones, where a missed +1 or +2 EV would show as errors of many ΔE.
 
 ## Light Falloff vs Phocus with lens corrections ON
 
+Measured with HNCS E2/E3, not re-measured with E4. On these frames E4 scores within about 0.1 of E3
+(their renders differ by a median of 0.1–0.3 ΔE00), so the recommendation should stand.
 Phocus's vignetting correction is stronger than Capture One's at the default Light Falloff of 100.
 The slider stops at 120.
 
@@ -68,14 +98,12 @@ The slider stops at 120.
 | Light Falloff 120 + Vignetting +0.5 EV | 2.79 | overshoots |
 
 So Light Falloff 120 is the right setting for both lenses. The 35-100 then matches Phocus out to the
-corners. The 28P's corners stay about half a stop darker than Phocus. Adding positive Vignetting
-doesn't fix that reliably, because the tool brightens the middle of the frame too. An exact match for
-the 28P would need a flat-field (LCC) calibration.
-
-The `HNCS E3 + Light Falloff 120` style was checked: its render is pixel-identical to applying
-`HNCS E3` and setting Light Falloff to 120 by hand.
+corners. The 28P's corners stay about half a stop darker; a flat-field (LCC) calibration would close
+that. The `+ Light Falloff 120` style renders pixel-identical to setting 120 by hand.
 
 ## Contact sheet
+
+Made with HNCS E3, before E4. On these four frames E4 scores within about 0.1 of E3 against Phocus.
 
 ![Phocus vs Capture One + HNCS E3 vs Capture One default](images/contact-sheet.jpg)
 
@@ -83,10 +111,8 @@ The `HNCS E3 + Light Falloff 120` style was checked: its render is pixel-identic
 - Capture One + HNCS E3: the `HNCS E3 + Light Falloff 120` style.
 - Capture One default: reset adjustments (ProStandard, Auto curve, Light Falloff 100).
 - Distortion correction is off in both apps so the pixels line up; every panel is drawn from the same
-  per-block mean Lab grid that the scores use. Scores here cover the whole frame, corners included.
-- Frames 623 and 679 were held out of the colour fit. Frames 901 and 917 were in it; they're shown
-  because they're the 28P frames with vignetting-on Phocus exports. On the 28P the remaining
-  difference is mostly the darker corners described above.
+  per-block mean Lab grid that the scores use. Scores cover the whole frame, corners included.
+- Frames 623 and 679 were held out of the colour fit; 901 and 917 were in it.
 
 ## Phocus edge brightening with corrections off
 
@@ -100,3 +126,19 @@ centre-calibrated LUT (r = distance from the centre / half-diagonal):
 
 For the 35-100, single frames range from 0.02 to 0.11 stop at r = 0.6, a little less at 75–100 mm
 than at 35–60 mm, across f/8 to f/16.
+
+## History
+
+Same three held-out 28P frames (912 / 929 / 939):
+
+| Version | What changed | Median ΔE00 |
+|---|---|---|
+| Capture One default (ProStandard, Auto curve) | — | 4.50 / 3.84 / 3.27 |
+| E1, real renders | First fitted profile, 28P only | 0.86 / 1.19 / 0.95 |
+| E2, LUT prediction | Phocus edge brightening removed before fitting | 0.62 / 1.07 / 0.81 |
+| E3, LUT prediction | Both of your lenses | 0.60 / 1.01 / 0.85 |
+| E4, LUT prediction | Plus 32 DPReview frames, anchored to your camera | 0.62 / 0.99 / 0.84 |
+
+E3 real renders (held out, Light Falloff 0, centre 30%): 912 0.67, 929 0.72, 939 0.86, 623 0.81,
+679 0.99, 703 0.67, 829 0.63, 863 0.54. E2, fitted on the 28P alone, rendered the 35-100 about 1.5 b*
+more yellow than Phocus; E3 fixed that by fitting on both lenses.
