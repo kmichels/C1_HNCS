@@ -7,7 +7,10 @@ The map is a raw-gain map from make_preprocess_map.py for the same lens state (l
 aperture): either given with --map, or picked from a folder of maps with --maps. Each raw channel is
 multiplied by its gain, interpolated from the map's block centres to every photosite of the active area.
 Values that would exceed the white level are clipped and counted (brightening corners uses up
-highlight headroom there).
+highlight headroom there; with HNCS's tone curve those areas render near white anyway). Photosites
+already clipped in the original stay at white so Capture One still treats them as clipped. (Scaling the
+whole image down and raising BaselineExposure renders identically elsewhere but breaks that: the
+clipped photosites end up brighter than their neighbours, a hard band once highlights are pulled down.)
 
 usage: python preprocess_3fr.py IN.3fr OUT.3fr (--map MAP.npz | --maps DIR) [--body-gains [--ref 2.600,2.260]]
 """
@@ -79,8 +82,8 @@ if a.body_gains:
     print(f"body gains {g1:.3f}, {g2:.3f} -> camera RGB x {np.round(k, 5)}")
 
 out = raw.astype(np.float32)
+src_clip = raw >= white  # clipped in the original: no information, must stay at white so Capture One treats it as clipped
 SITE = {(0, 0): 0, (0, 1): 1, (1, 0): 1, (1, 1): 2}  # RGGB from the raw origin
-clipped = 0
 for (pr, pc), c in SITE.items():
     rows = np.arange(cy0 + ((pr - cy0) % 2), cy0 + ch, 2)
     cols = np.arange(cx0 + ((pc - cx0) % 2), cx0 + cw, 2)
@@ -91,10 +94,13 @@ for (pr, pc), c in SITE.items():
         yy, xx = np.meshgrid(np.clip(rr, ys[0], ys[-1]), np.clip(cols, xs[0], xs[-1]), indexing="ij")
         g[i0:i0 + 256] = interp(np.stack([yy.ravel(), xx.ravel()], 1)).reshape(len(rr), len(cols))
     g *= k[c]
-    v = (out[np.ix_(rows, cols)] - black) * g + black
-    clipped += int((v > white).sum())
-    out[np.ix_(rows, cols)] = np.minimum(v, white)
-print(f"map {os.path.basename(mp)}: raw gain {gain.min():.3f}..{gain.max():.3f}; photosites clipped: {clipped} ({clipped / (ch * cw):.3%})")
+    out[np.ix_(rows, cols)] = (out[np.ix_(rows, cols)] - black) * g + black
+act = out[cy0:cy0 + ch, cx0:cx0 + cw]
+clipped = int(((act > white) & ~src_clip[cy0:cy0 + ch, cx0:cx0 + cw]).sum())
+np.minimum(out, white, out=out)
+out[src_clip] = white
+print(f"map {os.path.basename(mp)}: raw gain {gain.min():.3f}..{gain.max():.3f}; "
+      f"newly clipped photosites: {clipped} ({clipped / (ch * cw):.3%}); clipped in the original: {int(src_clip.sum())}")
 
 shutil.copyfile(a.inp, a.out)
 with open(a.out, "r+b") as fh:

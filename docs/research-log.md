@@ -850,3 +850,39 @@ renders at 50%, scored per 32 px block after alignment, leaving out clipped bloc
   frames with little vignetting, E4 is as close or closer at the centre (B0000639, 658, 673, 711, 722).
 - Highlight headroom: corner gains clip 1.5–2.0% of photosites on three frames (B0000912, B0000737,
   B0000671 at 1.0%), under 0.3% elsewhere.
+
+### Finding 25: headroom doesn't work cleanly; real clipped sky; batch pre-processing
+
+**In plain terms:** I tried to stop pre-processing from clipping bright corners by darkening the whole raw
+and telling Capture One to brighten it back (BaselineExposure). Capture One does render it identically,
+but it breaks how Capture One recognises sensor-clipped areas, so recovered skies get a hard band. The
+corners that clip sit in HNCS's white shoulder anyway, so the option is dropped. A real photo with a
+clipped sky confirms Finding 23: at defaults Phocus and Capture One + HNCS look the same, and Phocus's
+Highlight Recovery rebuilds a smooth, plausible sky where Capture One's Highlight slider can't. A batch
+tool now turns a folder of raws into corrected copies.
+
+**Headroom test** (B0000737, 35-100 35 mm f/11, sky clipped in camera on 1.5% of photosites; the corner
+gain clips another 0.5%):
+- Scaling the corrected raw down 0.9 stop and raising BaselineExposure by 0.9: Capture One renders it the
+  same as the unscaled copy (blocks away from white: median 0.045 ΔE00, p99 0.37, mean dL +0.01). So
+  Capture One applies BaselineExposure before its raw response.
+- Both score the same against Phocus (0.59 / 0.62); the newly clipped corner areas are L\* 100 in both.
+- With Highlight −100 the scaled copy shows a hard band: photosites clipped in camera stay at white so
+  Capture One treats them as clipped, but their scaled neighbours are 0.9 stop darker. Scaling them as
+  well would hide the clipping from Capture One (it would tint them instead). Without scaling the sky
+  stays smooth. `preprocess_3fr.py` keeps photosites clipped in camera at white and reports the newly
+  clipped ones separately.
+
+**Real clipped sky** (same frame), in blocks Phocus renders white (L\* > 97, 3212 blocks):
+
+| rendering | median L\* | tone within blocks (std of Y) |
+|---|---|---|
+| Phocus default | ~100 | 0.0018 |
+| Phocus Highlight Recovery 100 | 87.8 | 0.0048 |
+| Capture One + HNCS, Highlight −100 | 99.8 | 0.0037 |
+
+At defaults the two apps' skies look the same; Phocus's recovery gives a smooth, plausible gradient.
+
+**Batch:** `tools/preprocess_folder.py IN_DIR OUT_DIR [--make-maps]` writes a corrected copy of every
+raw (same file name) into another folder, skips existing copies, and with `--make-maps` makes missing
+maps through Phocus first.

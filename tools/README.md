@@ -118,6 +118,7 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `compare_gain_maps.py C1_FLAT_RENDER PHOCUS_MAP` | Capture One's spatial gain (Light Falloff, LCC) vs Phocus's |
 | `make_lcc_raw.py HOST OUT --colour MAP` | LCC reference raw that reproduces a colour shading map |
 | `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
+| `preprocess_folder.py IN_DIR OUT_DIR [--make-maps]` | Corrected copies of a whole folder, making missing maps with Phocus |
 | `preprocess_3fr.py IN OUT --maps DIR` | Corrected copy of a 3FR with Phocus's lens correction and colour shading in the raw ([pre-processing](#pre-processing)) |
 | `make_preprocess_map.py FLAT_GAIN FLAT.3fr DIR` | Raw-gain map for a lens state, from Phocus's render of a synthetic flat |
 | `auto_maps.py RAW … [--maps DIR]` | Make the missing maps for every lens state among the raws, through Phocus's hot folder (automatic) |

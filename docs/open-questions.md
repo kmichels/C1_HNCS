@@ -25,8 +25,10 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Highlight recovery: measured on synthetic clipping (Finding 23). Phocus keeps colour where one
   channel clips, and its Highlight Recovery rebuilds clipped channels; Capture One's slider only
   compresses.
-- [ ] Highlight recovery on a real frame with clipped sky; could the pre-processing step reconstruct
-  clipped channels in the raw the way Phocus does?
+- [x] Highlight recovery on a real frame with clipped sky (Finding 25).
+- [ ] Could the pre-processing step reconstruct clipped channels in the raw the way Phocus does? (It
+  would need values above the white level, which a 3FR can't hold, so probably only as a darker
+  rendering of the reconstructed range; not obviously possible.)
 - [ ] Focus distance on the XCD 55V and 90V, where blog.tonalphoto.com saw it (needs raws), and close
   focus on the 35-100 (nearest matched frame was 1.9 m).
 - [ ] Question 1 (28P edges at f/5.6+), question 4 (per-frame lightness), question 5 (shading mechanism).
@@ -35,8 +37,9 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Tungsten profiles (Finding 21). Still to check: the 28P one on real tungsten frames.
 - [x] Pre-processing step: prototype works, 0.3–0.8 ΔE00 over the whole frame (Finding 22).
 - [x] Pre-processing: automatic maps (`tools/auto_maps.py`); validated on 23 unseen photos (Finding 24).
-- [ ] Pre-processing: a headroom option for bright corners (1.5–2% clipped on some frames); a batch
-  workflow (folder in, corrected copies out, maps made as needed).
+- [x] Pre-processing batch workflow (`tools/preprocess_folder.py`, Finding 25).
+- [x] Headroom for bright corners: tried and dropped (it breaks Capture One's clipped-highlight
+  handling; the clipped corners render white either way) (Finding 25).
 - [ ] Automate per-image settings by writing Capture One's sidecar, if its format can be worked out.
 - [ ] Refresh the README contact sheet with E5.
 - [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`

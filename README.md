@@ -83,8 +83,10 @@ shading built into the sensor data. Your original is only read. Render the copy 
 (pre-processed)** or **HNCS E5 35-100 (pre-processed)**: plain E5 profile, Light Falloff 0, no LCC.
 
 ```sh
-.venv/bin/python tools/preprocess_3fr.py YOUR_RAW.3fr "Corrected/YOUR_RAW.3fr" --maps fit/preprocess_maps
+.venv/bin/python tools/preprocess_folder.py ~/Pictures/MySession/Capture ~/Pictures/MySession/Corrected --make-maps
 ```
+
+Import the `Corrected` folder (same file names), or run `tools/preprocess_3fr.py` on single files.
 
 It needs a map for the lens, focal length and aperture; `fit/preprocess_maps/` has a few dozen for the
 28P and 35-100. `tools/auto_maps.py YOUR_RAWS…` makes the missing ones with Phocus, unattended (see
