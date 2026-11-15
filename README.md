@@ -94,3 +94,8 @@ tools/      Python and AppleScript used to capture, pair, fit, write and validat
 Paused after E3 (November 2026). Next ideas: a flat-field (LCC) calibration for the 28P corners, more
 varied scenes and light, and more lenses. See
 [docs/methodology.md](docs/methodology.md#ideas-for-next-steps).
+
+## License
+
+[MIT](LICENSE) for the profile, the styles, the fitted table, the tools and the docs. The example
+photographs in `docs/images/` are © Scott Walker, all rights reserved.
