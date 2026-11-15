@@ -1,0 +1,14 @@
+# Local working data: pairs, renders, exports (large, regenerable; see tools/README.md)
+data/
+*.tif
+*.tiff
+*.3FR
+*.phos
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+.DS_Store
