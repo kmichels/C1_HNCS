@@ -318,8 +318,8 @@ f/5.6 and narrower.
 matrix followed by a tone curve applied to each channel separately (not a "hue-preserving" curve). That
 alone gets within about 1 ΔE00. The rest is genuinely three-dimensional, so colour adjustments depend
 on brightness too, and saturated colours are reshaped in ways no simple model follows. Phocus's
-"response" setting changes only the tone curve: Standard and a brighter alternative (likely
-"Reproduction") share the same colour.
+film-curve setting changes only the tone curve: Standard and a brighter alternative share the same
+colour. (Correction, Finding 19: that alternative isn't the Reproduction response.)
 
 35-100, host white balance, ~33,000 synthetic patches with Phocus's spatial gain removed; simple
 models fitted on camera-RGB saturation < 0.6 (s = 1 − min/max of white-balanced camera RGB), scored on
@@ -341,8 +341,8 @@ held-out patches (median ΔE00):
   scale. Output chroma reaches C* 175.
 - Sidecar `FilmCurve` (Standard = 4): values 1–5 render identically; 0 renders about a stop brighter in
   the midtones with a gentler highlight roll-off (grey L* 57.9 vs 43.6; 88.0 vs 80.2), with chroma
-  unchanged (median ratio 1.004). Matches the blog's description of the Reproduction response
-  (near-white L* 73 under Standard vs 90).
+  unchanged (median ratio 1.004). I took this for the blog's Reproduction response; Finding 19 shows
+  Reproduction is `ColorModel` 1, and `FilmCurve` 0 is the film-curve menu's "As Shot".
 
 ### Finding 12: no focus-distance dependence on the 28P; an exposure tag mimics one
 
@@ -489,8 +489,8 @@ white balance, after a correction fitted on moderate colours (near-whites above 
 **In plain terms:** Two settings in Phocus's sidecar change the rendering of X2D II files. `FilmCurve` 0
 gives a brighter tone curve with the same colour stage; `ColorModel` 1 changes colour as well as tone.
 The other values of those keys, and the `Mode` key, do nothing. Phocus's Reproduction tool offers four
-responses (Standard, Reproduction, Reproduction Low Gain, Negative); which keys each one sets needs a
-look at a sidecar after choosing it in the app.
+responses (Standard, Reproduction, Reproduction Low Gain, Negative); Finding 19 maps them to
+`ColorModel` values.
 
 Same grid, one key changed from the Standard sidecar (`FilmCurve` 4, `ColorModel` 0, `Mode` 0):
 
@@ -612,3 +612,35 @@ saturation (0–0.3 / 0.3–0.6 / 0.6–0.85 / 0.85–1):
   The same test on the Standard render returns it exactly (0.00), which checks the method.
 - Rec.2020 comes close to Hasselblad RGB in that check (0.18): the two spaces' primaries are similar.
 - The owner's real sidecars (33) all use `ColorWorkingSpace` 0, `ColorModel` 0, `FilmCurve` 4.
+
+### Finding 19: the Response menu is the ColorModel key
+
+**In plain terms:** Phocus's Response menu (Standard, Reproduction, Reproduction Low Gain, Negative) is
+stored as the sidecar's `ColorModel` value: 0, 1, 4 and 5. This came from reading Phocus's own code and
+was confirmed by rendering each value: 5 inverts the picture, as a Negative response should. The
+brighter `FilmCurve` 0 is a different, older setting, not Reproduction.
+
+**From the code.** The Reproduction tool's menu is bound to an `imageProperties.responseIx` property in
+the Phocus app. Its accessors (found through the Objective-C method lists of the arm64 binary and
+disassembled with `otool`) read and write one integer in the image's correction settings:
+- `responseIx` getter: stored value v → v − 2 if v > 1, else v;
+- `setResponseIx:`: menu index i → stores i + 2 if i > 1, else i;
+- `reproductionMode` getter: stored value == 1; `setReproductionMode:` stores 0 or 1.
+
+So menu items 0, 1, 2, 3 store 0, 1, 4, 5, and stored values 2 and 3 are skipped. Of the sidecar keys,
+only `ColorModel` behaves like that: 1 changes the rendering, and 2 and 3 render as Standard (Finding 15).
+
+**Confirmed by rendering** (`tools/round3/responses_all.py`):
+
+| `ColorModel` | menu item | median ΔE00 vs Standard | chroma ratio | grey L\* at camera 0.011 / 0.057 / 0.165 / 0.428 / 0.6 |
+|---|---|---|---|---|
+| 0 | Standard | — | 1.000 | 4.7 / 29.4 / 57.5 / 84.9 / 91.9 |
+| 1 | Reproduction | 3.63 | 1.058 | 14.1 / 36.9 / 59.6 / 87.6 / 98.7 |
+| 4 | Reproduction Low Gain | 6.86 | 0.964 | 9.2 / 28.4 / 47.4 / 70.8 / 80.1 |
+| 5 | Negative | 98.5 | 1.034 | 89.2 / 76.1 / 60.0 / 35.1 / 23.1 (inverted) |
+| 2, 3, 6 | not in the menu | 0.00 | 1.000 | as Standard |
+
+- Reproduction (Finding 18): Standard's colour stage, then about +7% exposure, +5% saturation and a much
+  lighter shadow curve. Low Gain is darker throughout, with slightly less chroma.
+- `FilmCurve`'s menu strings are As Shot, Standard, Low Contrast, High Contrast, Old Standard, Linear
+  (0–5); the brighter rendering is "As Shot", which may not be offered for X2D II files.

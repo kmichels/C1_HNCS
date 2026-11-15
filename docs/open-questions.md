@@ -13,8 +13,8 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] HNCS structure: white balance changes the colour matrix; saturated colours change a bit more
   (Finding 14).
 - [x] HNCS structure: the 28P's is the same as the 35-100's (Finding 14).
-- [ ] Response options: `FilmCurve` 0 and `ColorModel` 1 change the rendering (Finding 15). Which menu item
-  sets which? Choose each response in Phocus's Reproduction tool and read the sidecar (needs the app).
+- [x] Response options: the menu is `ColorModel` 0 / 1 / 4 / 5 = Standard / Reproduction / Reproduction
+  Low Gain / Negative (Finding 19).
 - [x] `ColorModel` 1: a separate rendering (Standard's colour stage + more exposure and saturation + a much
   lighter shadow curve; ignores `FilmCurve`) (Finding 18).
 - [ ] `ColorWorkingSpace` 1–3 change the colour stage, not only where the curve runs (Finding 18). Which
@@ -31,8 +31,8 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [ ] Pre-processing step for 3FRs before Capture One (question 3).
 - [ ] Automate per-image settings by writing Capture One's sidecar, if its format can be worked out.
 - [ ] Refresh the README contact sheet with E5.
-- [ ] Profiles for Phocus's brighter response (`FilmCurve` 0): it only swaps the tone curve in Hasselblad
-  RGB (Finding 14), so E5 with that curve swapped in.
+- [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`
+  1 or 4, fitted like E5.
 
 **Validation and writing**
 - [ ] Check E5 on new real photos (owner's camera, varied light).
