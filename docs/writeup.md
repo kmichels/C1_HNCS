@@ -114,11 +114,26 @@ the shadows: it hands a profile 0.17× the raw level at 1% of white and 0.64× a
 above 60%. Converted through that curve, Phocus's correction is a fixed multiplier on the raw values,
 identical at different exposures.
 
+Phocus also nudges overall brightness by lens setting, on top of its vignetting correction and whether
+corrections are on or off. With the 35-100, a mid-grey renders about half an L\* darker at 50–65 mm than
+at 35 mm f/11; the 28P is a touch brighter at f/4 than at f/8. Capture One doesn't do this, and it turned
+out to be most of the frame-to-frame lightness differences I couldn't explain.
+
 On focus distance I can only add a partial answer to yours. On my 28P (0.24 m and 0.75 m against far
 focus, f/4 to f/8) and my 35-100 (1.9 m against 5.7 m, 5.7 m against infinity), near and far focus gave
 the same correction to within about 0.01 stop out to the corners. One 28P pair first looked different,
 until I noticed one file carried BaselineExposure +0.76. You measured a focus effect on the 55V and 90V,
 and I have no raws from either, so this may simply be lens-specific.
+
+### Where the lens data lives
+
+You found per-lens shading files in the camera's firmware. Phocus has its own copy. The camera writes a
+34-byte lens identity into two maker-note entries (0x0017 and 0x0018), and Phocus looks everything else up
+internally. Copy just those two entries from a 28P file into a 35-100 file and Phocus gives it the 28P's
+colour shading, edge lift, vignetting correction and brightness. The EXIF lens name doesn't matter at
+all. Break the pair (0x0018 on its own) and Phocus switches lens processing off entirely, which is how I
+found its "no lens" baseline. The tables themselves live in Phocus's 119 MB HBUtil framework, which names
+every XCD lens.
 
 ### Writing the correction into the raw
 
@@ -134,6 +149,12 @@ no LCC:
 | Corrected copy, plain profile | **0.65** | **0.49** |
 | Profile per lens + colour LCC + Light Falloff 120 | 1.38 | 0.64 |
 | Single profile + Light Falloff 120 | 2.07 | 0.65 |
+
+Adding the lens-setting brightness to the maps took 14 of those frames from a mean of 0.55 to 0.47, with
+their lightness offsets falling from 0.33 to 0.12 L\*. The batch tool now also writes a Capture One
+settings file next to each copy, so it opens with the right profile and Light Falloff 0, and a lens I
+don't own can get its own profile from Phocus renders alone, because Capture One turns each synthetic
+patch into the same camera RGB whatever the lens.
 
 The error is flat from centre to corner. The cost is a full-size copy of every raw, and some highlight
 headroom in brightened corners. I tried buying that back by darkening the raw and raising
@@ -152,8 +173,9 @@ because it happens before the profile is applied.
 
 ## What I still don't know
 
-The focus question on the 55V and 90V is the obvious one, and I'd like to know whether other lenses show
-the same per-lens colour shading. I haven't found what `HighlightDesaturation` does, since it changed
+The focus question on the 55V and 90V is the obvious one. The only public raws I've found from either
+are from the original X2D, so X2D II files from those lenses, ideally at close focus, would let me test it
+the same way. I haven't found what `HighlightDesaturation` does, since it changed
 nothing in my tests. And I have exactly two GAIN records, mine and DPReview's -- if yours shows up as
 another pair of numbers in the same range, the formula gets its first independent test.
 
