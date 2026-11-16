@@ -988,3 +988,39 @@ stops at r 0.6 / 0.9, corrections off, and centre L\*:
   and names every XCD lens (21, 28P, 30, 35-75, 35-100E, 45, 45P, 65, 80, 90, 120, 135 …), which is
   where the lens data must live. blog.tonalphoto.com found the same per-lens files in the camera's
   firmware; Phocus carries its own copy.
+
+### Finding 30: the lens identity decoded, and the 55V and 38V on an X2D II file
+
+**In plain terms:** The two maker-note entries that identify the lens also carry the shot's aperture and
+focal length, which Phocus reads from there rather than from EXIF. Lens identities from original-X2D raws
+work on X2D II files, so Phocus's processing for lenses I don't own can be measured: the 55V and 38V each
+get their own colour shading and vignetting correction. None of the inputs Phocus reads vary with focus
+distance, so on these files its lens processing doesn't depend on focus.
+
+- 0x0018 (17 bytes) describes the lens: byte 1 a type code (0x43 for the primes, 0x53 for the 35-100),
+  bytes 2–3 its shortest and longest focal-length codes (28P 0x27/0x27, 35-100 0x2f/0x53, 55V 0x3e/0x3e,
+  38V 0x31/0x31).
+- 0x0017 (17 bytes) is the shot: byte 8 is the aperture as 12 × APEX (0x30 f/4, 0x3c f/5.6, 0x48 f/8,
+  0x54 f/11, 0x60 f/16); byte 14 the focal length, about 24 × log2(mm) − 76 (28 mm 0x27, 35 mm 0x2f,
+  50 mm 0x3b, 55 mm 0x3e, 100 mm 0x53). Both decode correctly on all files checked.
+- Raws: one 55V (f/4) and one 38V (f/11) from DPReview's original-X2D gallery (firmware 1.0.0, same
+  uncompressed sensor layout, 33 maker-note entries including 0x0017/0x0018).
+- On an X2D II 35-100 flat field (35 mm f/11, BaselineExposure 0), with each lens's 0x0017/0x0018:
+
+| identity | centre L\* | corrections off: lift / B−G at r 0.6, 0.9 (stops) | corrections on: green gain at r 0.6, 0.9 |
+|---|---|---|---|
+| 35-100, 35 mm f/11 (host) | 31.43 | +0.07, +0.24 / −0.04, −0.07 | +0.39, +0.96 |
+| 55V, f/4 | 30.16 | +0.21, +0.56 / −0.12, −0.17 | +0.68, +1.69 |
+| 55V with byte 8 set to f/8 | 30.16 | unchanged | +0.62, +1.35 |
+| 38V, f/11 | 30.43 | +0.15, +0.50 / −0.08, −0.16 | +0.70, +1.52 |
+
+- Focus: changing any other byte of the 55V's 0x0017 (bytes 4–7, 9–13, 15, 16; the V-lens files carry
+  non-zero bytes 11–13 where the 28P and 35-100 have zeros) changes nothing. Setting byte 14 outside the
+  lens's range removes the vignetting correction and keeps the shading. The sidecar's `VLensDistance` and
+  `VLensType` (0.5–100, with type −1 or 1) change nothing either; they're probably for V-system film lenses.
+- Correction to Finding 12: maker-note 0x0081–0x0083 aren't focus fields. Across 28P frames from 0.24 m
+  to infinity they read 25.8–28.8, 0–0.13 and 43.9–44.7 with no relation to distance (0x0081 and 0x0083
+  look like temperatures).
+- What this leaves of blog.tonalphoto.com's 55V/90V focus effect: it isn't driven by anything in these
+  files. Two raws of the same lens at different focus distances, rendered in Phocus, would show whether it
+  appears at all and where it comes from.
