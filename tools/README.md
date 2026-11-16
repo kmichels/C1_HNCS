@@ -59,7 +59,6 @@ Measured edge lifts (Phocus, lens corrections off, `--lift` values):
 | `save_phocus_lab.py` | Block Lab of a Phocus export (for corrections-on comparisons) |
 | `score_closed_loop.py`, `score_light_falloff.py` | Validation against real Capture One renders |
 | `phos_diff.py`, `match_exports.py` | Phocus housekeeping |
-| `contact_sheet.py` | The comparison image in the README |
 | `build_probe.py` | Rebuild the probe profile |
 | `applescript/` | Capture One render jobs. Frame lists and recipe names are hard-coded; edit them. |
 
@@ -118,11 +117,13 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `compare_gain_maps.py C1_FLAT_RENDER PHOCUS_MAP` | Capture One's spatial gain (Light Falloff, LCC) vs Phocus's |
 | `make_lcc_raw.py HOST OUT --colour MAP` | LCC reference raw that reproduces a colour shading map |
 | `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
-| `preprocess_folder.py IN_DIR OUT_DIR [--make-maps]` | Corrected copies of a whole folder, making missing maps with Phocus |
+| `preprocess_folder.py IN_DIR OUT_DIR [--make-maps] [--make-profiles]` | Corrected copies of a whole folder, making missing maps and lens profiles with Phocus |
+| `auto_lens_profile.py RAW … [--name N] [--install]` | Build an HNCS E5 profile + styles for any lens from its raws, using only Phocus (Capture One's side comes from `fit/c1_patch_lookup.npz`) |
 | `preprocess_3fr.py IN OUT --maps DIR` | Corrected copy of a 3FR with Phocus's lens correction and colour shading in the raw ([pre-processing](#pre-processing)) |
 | `make_preprocess_map.py FLAT_GAIN FLAT.3fr DIR` | Raw-gain map for a lens state, from Phocus's render of a synthetic flat |
 | `auto_maps.py RAW … [--maps DIR]` | Make the missing maps for every lens state among the raws, through Phocus's hot folder (automatic) |
 | `phocus_hotfolder.py` | Python helper: render raws in Phocus without its GUI (private watch folder, settings per file, preferences restored) |
+| `contact_sheet.py OUT.jpg --row LABEL PHOCUS.tif C1.tif … ` | Side-by-side sheet from finished renders, scored against Phocus |
 | `score_render.py PHOCUS.tif C1.tif …` | Score finished Capture One renders against a Phocus export of the same raw (aligned, per block) |
 | `highlight_test.py` | Phocus vs Capture One on a synthetic exposure ladder through raw clipping (Finding 23) |
 | `body_gains.py RAW` | Read a body's factory calibration gains and print the profile input gain for that body |

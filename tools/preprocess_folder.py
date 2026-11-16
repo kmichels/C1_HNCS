@@ -1,8 +1,11 @@
 """Pre-process a folder of X2D II raws: write a corrected copy of each (same file name) into another
 folder, for Capture One with the "HNCS E5 … (pre-processed)" styles. Originals are only read; existing
-copies are skipped. With --make-maps, missing maps are made first through Phocus (auto_maps.py).
+copies are skipped. With --make-maps, missing maps are made first through Phocus (auto_maps.py); with
+--make-profiles, an E5 profile and styles are built for any lens that has none (auto_lens_profile.py,
+installed into Capture One; restart it afterwards).
 
-usage: python preprocess_folder.py IN_DIR OUT_DIR [--maps fit/preprocess_maps] [--make-maps] [--body-gains]
+usage: python preprocess_folder.py IN_DIR OUT_DIR [--maps fit/preprocess_maps] [--make-maps] [--make-profiles]
+       [--body-gains]
 """
 import argparse
 import glob
@@ -12,12 +15,13 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from make_preprocess_map import lens_state  # noqa: E402
+from make_preprocess_map import lens_state, profile_name  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("inp"); ap.add_argument("out")
 ap.add_argument("--maps", default=os.path.join(HERE, "..", "fit", "preprocess_maps"))
 ap.add_argument("--make-maps", action="store_true", help="make missing maps with Phocus first (restarts Phocus)")
+ap.add_argument("--make-profiles", action="store_true", help="build an E5 profile for lenses without one (Phocus)")
 ap.add_argument("--body-gains", action="store_true")
 a = ap.parse_args()
 if os.path.realpath(a.inp) == os.path.realpath(a.out):
@@ -31,6 +35,14 @@ missing = sorted({lens_state(r)[0] for r in todo if not os.path.exists(os.path.j
 if missing and a.make_maps:
     subprocess.run([sys.executable, "-I", os.path.join(HERE, "auto_maps.py"), *todo, "--maps", a.maps], check=True)
     missing = sorted({lens_state(r)[0] for r in todo if not os.path.exists(os.path.join(a.maps, lens_state(r)[0] + ".npz"))})
+by_lens = {}
+for r in raws:
+    by_lens.setdefault(profile_name(lens_state(r)[1]), []).append(r)
+no_profile = [n for n in by_lens if not os.path.exists(os.path.join(HERE, "..", "profiles", f"HasselbladX2DII100C-HNCS E5 {n}.icm"))]
+if no_profile and a.make_profiles:
+    for n in no_profile:
+        subprocess.run([sys.executable, "-I", os.path.join(HERE, "auto_lens_profile.py"), *by_lens[n], "--install"], check=True)
+    no_profile = [n for n in no_profile if not os.path.exists(os.path.join(HERE, "..", "profiles", f"HasselbladX2DII100C-HNCS E5 {n}.icm"))]
 done, skipped = 0, []
 for r in todo:
     key = lens_state(r)[0]
@@ -51,3 +63,7 @@ for r in todo:
     print(f"{os.path.basename(r)}: {res.stdout.strip().splitlines()[0]}", flush=True)
 print(f"\n{done} written, {len(raws) - len(todo)} already there, {len(skipped)} without a map"
       + (f" ({', '.join(missing)}; run with --make-maps)" if skipped else ""))
+for n in sorted(by_lens):
+    style = f"HNCS E5 {n} (pre-processed)"
+    note = " (no profile yet: run with --make-profiles)" if n in no_profile else ""
+    print(f"{n}: render the copies with the style '{style}'{note}")

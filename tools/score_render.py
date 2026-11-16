@@ -53,37 +53,42 @@ def block_lab(img, decode, bs):
     return xyz_to_lab((m @ PROPHOTO_M.T) * white), Y.std(axis=(1, 3)).ravel() / np.maximum(Y.mean(axis=(1, 3)).ravel(), 1e-6), x.max(axis=(1, 3, 4)).ravel()
 
 
-ap = argparse.ArgumentParser()
-ap.add_argument("phocus"); ap.add_argument("renders", nargs="+")
-ap.add_argument("--block", type=int, default=32)
-ap.add_argument("--json", default=None)
-a = ap.parse_args()
-ph = load(a.phocus)
-out = {}
-for r in a.renders:
-    c1 = load(r)
-    if c1.shape[:2] != ph.shape[:2]:
-        print(f"{os.path.basename(r)}: size {c1.shape[:2]} vs Phocus {ph.shape[:2]}; skipped")
-        continue
-    (sa, sb), shift = align(c1, ph)
-    A, B = c1[sa], ph[sb]
-    la, _, ma = block_lab(A, romm_decode, a.block)
-    lb, busy, mb = block_lab(B, phocus_decode, a.block)
-    H, W = A.shape[:2]
-    nby, nbx = H // a.block, W // a.block
-    yy, xx = np.mgrid[0:nby, 0:nbx]
-    cy = yy * a.block + a.block / 2 + sa[0].start - c1.shape[0] / 2
-    cx = xx * a.block + a.block / 2 + sa[1].start - c1.shape[1] / 2
-    rad = (np.hypot(cy, cx) / np.hypot(c1.shape[0] / 2, c1.shape[1] / 2)).ravel()
-    ok = (lb[:, 0] > 3) & (lb[:, 0] < 97) & (la[:, 0] < 97) & (mb < 0.99) & (ma < 0.99) & (rad < 0.95)
-    ok &= busy < np.percentile(busy[ok], 70)
-    d = de2000(la[ok], lb[ok])
-    dl = la[ok, 0] - lb[ok, 0]
-    rr = rad[ok]
-    bands = {f"r{lo:.1f}": (float(np.median(d[(rr >= lo) & (rr < lo + .2)])), float(dl[(rr >= lo) & (rr < lo + .2)].mean()))
-             for lo in (0, .2, .4, .6, .8) if ((rr >= lo) & (rr < lo + .2)).sum() > 50}
-    out[os.path.join(os.path.basename(os.path.dirname(r)), os.path.basename(r))] = dict(median=float(np.median(d)), p90=float(np.percentile(d, 90)), dL=float(np.median(dl)), bands=bands, shift=shift, n=int(ok.sum()))
-    print(f"{os.path.basename(r)}: median {np.median(d):.2f} p90 {np.percentile(d, 90):.2f} dL {np.median(dl):+.2f} | "
-          + " | ".join(f"{k}: {v[0]:.2f} ({v[1]:+.1f})" for k, v in bands.items()) + f"  [shift {shift}, {ok.sum()} blocks]")
-if a.json:
-    json.dump(out, open(a.json, "w"), indent=1)
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("phocus"); ap.add_argument("renders", nargs="+")
+    ap.add_argument("--block", type=int, default=32)
+    ap.add_argument("--json", default=None)
+    a = ap.parse_args()
+    ph = load(a.phocus)
+    out = {}
+    for r in a.renders:
+        c1 = load(r)
+        if c1.shape[:2] != ph.shape[:2]:
+            print(f"{os.path.basename(r)}: size {c1.shape[:2]} vs Phocus {ph.shape[:2]}; skipped")
+            continue
+        (sa, sb), shift = align(c1, ph)
+        A, B = c1[sa], ph[sb]
+        la, _, ma = block_lab(A, romm_decode, a.block)
+        lb, busy, mb = block_lab(B, phocus_decode, a.block)
+        H, W = A.shape[:2]
+        nby, nbx = H // a.block, W // a.block
+        yy, xx = np.mgrid[0:nby, 0:nbx]
+        cy = yy * a.block + a.block / 2 + sa[0].start - c1.shape[0] / 2
+        cx = xx * a.block + a.block / 2 + sa[1].start - c1.shape[1] / 2
+        rad = (np.hypot(cy, cx) / np.hypot(c1.shape[0] / 2, c1.shape[1] / 2)).ravel()
+        ok = (lb[:, 0] > 3) & (lb[:, 0] < 97) & (la[:, 0] < 97) & (mb < 0.99) & (ma < 0.99) & (rad < 0.95)
+        ok &= busy < np.percentile(busy[ok], 70)
+        d = de2000(la[ok], lb[ok])
+        dl = la[ok, 0] - lb[ok, 0]
+        rr = rad[ok]
+        bands = {f"r{lo:.1f}": (float(np.median(d[(rr >= lo) & (rr < lo + .2)])), float(dl[(rr >= lo) & (rr < lo + .2)].mean()))
+                 for lo in (0, .2, .4, .6, .8) if ((rr >= lo) & (rr < lo + .2)).sum() > 50}
+        out[os.path.join(os.path.basename(os.path.dirname(r)), os.path.basename(r))] = dict(median=float(np.median(d)), p90=float(np.percentile(d, 90)), dL=float(np.median(dl)), bands=bands, shift=shift, n=int(ok.sum()))
+        print(f"{os.path.basename(r)}: median {np.median(d):.2f} p90 {np.percentile(d, 90):.2f} dL {np.median(dl):+.2f} | "
+              + " | ".join(f"{k}: {v[0]:.2f} ({v[1]:+.1f})" for k, v in bands.items()) + f"  [shift {shift}, {ok.sum()} blocks]")
+    if a.json:
+        json.dump(out, open(a.json, "w"), indent=1)
+
+
+if __name__ == "__main__":
+    main()

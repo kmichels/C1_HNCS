@@ -41,7 +41,9 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Headroom for bright corners: tried and dropped (it breaks Capture One's clipped-highlight
   handling; the clipped corners render white either way) (Finding 25).
 - [ ] Automate per-image settings by writing Capture One's sidecar, if its format can be worked out.
-- [ ] Refresh the README contact sheet with E5.
+- [x] README contact sheet: pre-processed + E5 vs Phocus vs Capture One default.
+- [x] E5 profiles for other lenses, automatically (`tools/auto_lens_profile.py`, Finding 26). Untested
+  on a lens other than the two I own; worth checking on the first one.
 - [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`
   1 or 4, fitted like E5.
 

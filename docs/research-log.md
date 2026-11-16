@@ -886,3 +886,35 @@ At defaults the two apps' skies look the same; Phocus's recovery gives a smooth,
 **Batch:** `tools/preprocess_folder.py IN_DIR OUT_DIR [--make-maps]` writes a corrected copy of every
 raw (same file name) into another folder, skips existing copies, and with `--make-maps` makes missing
 maps through Phocus first.
+
+### Finding 26: E5 profiles for any lens, from Phocus alone
+
+**In plain terms:** A new lens can now get its own E5 profile without Capture One in the loop. Capture One
+turns each synthetic patch into exactly the same camera RGB whatever the lens or white balance, so its
+side of every pair can be looked up from the measurements already made, and only Phocus has to render the
+new lens's grids. Rebuilt this way, the 28P profile comes out within 0.16 ΔE00 of the shipped one.
+
+- Capture One's camera RGB for each of the 46,577 patch values of the standard 22- and 33-level grids,
+  across the 24 grids already measured (two lenses, 3100–6300 K): spread median 0.0003, max 0.005 in
+  profile-input units, which is render noise. Saved as `fit/c1_patch_lookup.npz`.
+- Capture One's per-channel response curve alone isn't enough: for about 7% of patches, extremely
+  saturated ones with one channel near zero, Capture One mixes a little into the empty channel and
+  compresses the strong one (a pure blue at nominal 0.85 comes out 0.47 instead of 0.63). The lookup
+  carries that.
+- `tools/auto_lens_profile.py RAW…`: three 33-level parts at the raw's white balance, five 22-level grids
+  at the E5 daylight white balances, and an L\* 45 flat, all written into copies of one of the lens's raws
+  (landscape, BaselineExposure set to 0); nine Phocus renders through the hot folder; pairs from the
+  lookup; `fit_synthetic.py`; profile, plain style and "(pre-processed)" style. About five minutes.
+- BaselineExposure trap: the first run used a host carrying +0.067 and came out 1.2 L\* brighter in the
+  midtones than the shipped profile (+0.067 EV on HNCS's curve, about 18 L\* per stop there). Phocus
+  applies it to the grids, but the lookup was measured at 0. The copies now get 0.
+- Check, 28P rebuilt from scratch vs the shipped E5 28P, on the shipped 28P synthetic data (moderate
+  colours, median ΔE00 vs Phocus): host white balance 0.28 vs 0.40; other daylight white balances
+  0.57–1.22 vs 0.67–1.11; the two tables 0.16 apart.
+- `preprocess_folder.py --make-profiles` runs it for any lens in a folder that has no E5 profile, and
+  installs the result.
+
+**Contact sheet.** `docs/images/contact-sheet.jpg` now shows six of the owner's frames (28P at f/4, f/5.6
+and f/16; 35-100 at 35 mm and 100 mm): Phocus with lens corrections on, Capture One with pre-processed
+copies and HNCS E5 (whole-frame median 0.25–0.75 ΔE00), and Capture One's defaults (2.95–6.27).
+`tools/contact_sheet.py` now builds it from finished renders.

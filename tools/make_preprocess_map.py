@@ -27,6 +27,14 @@ def lens_state(path):
     return f"{lens.replace(' ', '')}_{focal:.0f}mm_f{fnum:.1f}", lens, focal, fnum
 
 
+SHIPPED_NAMES = {"XCD 28P": "28P", "XCD 35-100E": "35-100"}
+
+
+def profile_name(lens):
+    """Name used in 'HNCS E5 <name>' for a lens model (the shipped short names for the 28P and 35-100)."""
+    return SHIPPED_NAMES.get(lens, lens.replace(" ", ""))
+
+
 def baseline_exposure(path):
     with tifffile.TiffFile(path) as t:
         tags = t.pages[0].tags

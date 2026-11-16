@@ -15,23 +15,10 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from make_preprocess_map import lens_state  # noqa: E402
-from phocus_hotfolder import HotFolder  # noqa: E402
+from phocus_hotfolder import HotFolder, set_landscape  # noqa: E402
 
 LUTS = {"XCD28P": "lut_e5_28p.npz", "XCD35-100E": "lut_e5_35-100.npz"}
 
-
-def set_landscape(path):
-    """Orientation 1 in the flat copy, so Phocus exports it in sensor orientation like the raw data."""
-    import struct
-    import tifffile
-    with tifffile.TiffFile(path) as t:
-        tag = t.pages[0].tags.get("Orientation")
-        if tag is None or tag.value == 1:
-            return
-        off = tag.valueoffset
-    with open(path, "r+b") as f:
-        f.seek(off)
-        f.write(struct.pack("<H", 1))
 
 ap = argparse.ArgumentParser()
 ap.add_argument("raws", nargs="+")

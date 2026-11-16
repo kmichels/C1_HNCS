@@ -32,6 +32,34 @@ def _running():
     return subprocess.run(["pgrep", "-x", "Phocus"], capture_output=True).returncode == 0
 
 
+def set_landscape(path):
+    """Orientation 1 in the flat copy, so Phocus exports it in sensor orientation like the raw data."""
+    import struct
+    import tifffile
+    with tifffile.TiffFile(path) as t:
+        tag = t.pages[0].tags.get("Orientation")
+        if tag is None or tag.value == 1:
+            return
+        off = tag.valueoffset
+    with open(path, "r+b") as f:
+        f.seek(off)
+        f.write(struct.pack("<H", 1))
+
+
+def set_baseline_exposure(path, value=0.0):
+    """Write BaselineExposure into a raw copy (IFD0 SRATIONAL)."""
+    import struct
+    import tifffile
+    with tifffile.TiffFile(path) as t:
+        tag = t.pages[0].tags.get("BaselineExposure")
+        if tag is None:
+            return
+        off = tag.valueoffset
+    with open(path, "r+b") as f:
+        f.seek(off)
+        f.write(struct.pack("<ii", int(round(value * 1_000_000)), 1_000_000))
+
+
 def _bookmark(path):
     js = ('ObjC.import("Foundation"); var u = $.NSURL.fileURLWithPath("%s"); '
           'u.bookmarkDataWithOptionsIncludingResourceValuesForKeysRelativeToURLError(0, $(), $(), null)'

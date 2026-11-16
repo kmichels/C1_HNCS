@@ -8,9 +8,9 @@ the smallest difference you can see side by side).
 
 ![Phocus vs Capture One with HNCS vs Capture One default](docs/images/contact-sheet.jpg)
 
-*Left: Phocus (Standard preset, lens corrections on). Middle: Capture One with an earlier HNCS profile
-(E3). Right: Capture One's default rendering. Numbers are the median colour difference from Phocus over
-the whole frame. Details in [docs/results.md](docs/results.md).*
+*Left: Phocus (Standard preset, lens corrections on). Middle: Capture One rendering a pre-processed copy
+of the raw with HNCS E5. Right: Capture One's default rendering. Numbers are the median colour difference
+from Phocus over the whole frame (ΔE00). None of these frames were used in fitting E5.*
 
 This is a personal project. It's not affiliated with Hasselblad or Capture One.
 
@@ -83,8 +83,12 @@ shading built into the sensor data. Your original is only read. Render the copy 
 (pre-processed)** or **HNCS E5 35-100 (pre-processed)**: plain E5 profile, Light Falloff 0, no LCC.
 
 ```sh
-.venv/bin/python tools/preprocess_folder.py ~/Pictures/MySession/Capture ~/Pictures/MySession/Corrected --make-maps
+.venv/bin/python tools/preprocess_folder.py ~/Pictures/MySession/Capture ~/Pictures/MySession/Corrected --make-maps --make-profiles
 ```
+
+`--make-maps` measures any lens setting it hasn't seen; `--make-profiles` builds an E5 profile and styles
+for any lens other than the 28P and 35-100 (about five minutes, Phocus only) and installs them; restart
+Capture One afterwards. Both drive Phocus unattended, so don't use it while they run.
 
 Import the `Corrected` folder (same file names), or run `tools/preprocess_3fr.py` on single files.
 
