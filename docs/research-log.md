@@ -1119,3 +1119,5 @@ throughout.
 - The −0.2 L\* is the same on both scenes and at every aperture, so it belongs to the profile, not the
   maps. It's within the ±0.2 L\* the other lenses leave per frame, but there it varies in sign; here it
   doesn't. Eight of the nine frames are one scene, so this is a narrow test of colour.
+- Contact sheet regenerated with the current maps and a 38V row: frame 939 0.54 → 0.43 (lens-setting
+  brightness); the other five unchanged; 38V frame 1059 0.35 against Capture One's default 4.44.
