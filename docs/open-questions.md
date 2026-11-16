@@ -30,7 +30,11 @@ Everything still open, in one place. Details for the numbered questions are belo
   would need values above the white level, which a 3FR can't hold, so probably only as a darker
   rendering of the reconstructed range; not obviously possible.)
 - [ ] Focus distance on the XCD 55V and 90V, where blog.tonalphoto.com saw it (needs raws), and close
-  focus on the 35-100 (nearest matched frame was 1.9 m).
+  focus on the 35-100 (nearest matched frame was 1.9 m). Raw sources found (2026-11-15): Hasselblad's
+  X2D II sample galleries are JPEG-only; Imaging Resource's X2D 100C gallery has 42 55V and 3 38V raws,
+  but converted to Phocus `.FFF`, which keeps neither the 3FR maker note nor its lens identity;
+  DPReview's X2D 100C gallery (38V, 55V; a few raws) probably serves original `.3FR`, so it's the next
+  thing to try. What's needed: one raw per lens, to borrow its 34-byte lens identity (Finding 29).
 - [x] Question 4, per-frame lightness: mostly Phocus's per-lens-setting brightness, now in the maps
   (Finding 27). About ±0.2 L\* per frame remains.
 - [x] Question 5, shading mechanism: Phocus looks the lens up by a 34-byte identity in the raw and uses
