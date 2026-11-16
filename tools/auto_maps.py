@@ -15,7 +15,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from make_preprocess_map import lens_state  # noqa: E402
-from phocus_hotfolder import HotFolder, set_landscape  # noqa: E402
+from phocus_hotfolder import HotFolder, set_baseline_exposure, set_landscape  # noqa: E402
 
 LUTS = {"XCD28P": "lut_e5_28p.npz", "XCD35-100E": "lut_e5_35-100.npz"}
 
@@ -24,11 +24,12 @@ ap = argparse.ArgumentParser()
 ap.add_argument("raws", nargs="+")
 ap.add_argument("--maps", default=os.path.join(HERE, "..", "fit", "preprocess_maps"))
 ap.add_argument("--dry-run", action="store_true")
+ap.add_argument("--refresh", action="store_true", help="remake maps that already exist")
 a = ap.parse_args()
 todo = {}
 for r in a.raws:
     key, lens, focal, fnum = lens_state(r)
-    if not os.path.exists(os.path.join(a.maps, key + ".npz")):
+    if a.refresh or not os.path.exists(os.path.join(a.maps, key + ".npz")):
         todo.setdefault(key, (r, lens))
 print(f"{len(todo)} lens states need a map: {', '.join(sorted(todo)) or '-'}")
 if a.dry_run or not todo:
@@ -42,6 +43,7 @@ try:
             flat = os.path.join(work, f"flat_{key}.3fr")
             subprocess.run([py, "-I", os.path.join(HERE, "make_synthetic_raw.py"), raw, flat, "--flat", "30", "--uid", "HNCSAUTOMAP00000"], check=True, capture_output=True)
             set_landscape(flat)
+            set_baseline_exposure(flat, 0.0)  # so centre brightness compares across lens states
             tif = hf.render(flat, name=f"flat_{key}.3fr", LensCorrection=4)
             lut = os.path.join(HERE, "..", "fit", LUTS.get(lens.replace(" ", ""), "lut_e4.npz"))
             fg = os.path.join(work, f"gain_{key}.npz")

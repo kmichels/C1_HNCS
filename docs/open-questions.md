@@ -31,7 +31,11 @@ Everything still open, in one place. Details for the numbered questions are belo
   rendering of the reconstructed range; not obviously possible.)
 - [ ] Focus distance on the XCD 55V and 90V, where blog.tonalphoto.com saw it (needs raws), and close
   focus on the 35-100 (nearest matched frame was 1.9 m).
-- [ ] Question 1 (28P edges at f/5.6+), question 4 (per-frame lightness), question 5 (shading mechanism).
+- [x] Question 4, per-frame lightness: mostly Phocus's per-lens-setting brightness, now in the maps
+  (Finding 27). About ±0.2 L\* per frame remains.
+- [x] Question 5, shading mechanism: Phocus looks the lens up by a 34-byte identity in the raw and uses
+  its own built-in lens data (Finding 29).
+- [ ] Question 1 (28P edges at f/5.6+) for the LCC route; pre-processing already handles it.
 
 **Building**
 - [x] Tungsten profiles (Finding 21). Still to check: the 28P one on real tungsten frames.
@@ -40,7 +44,8 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Pre-processing batch workflow (`tools/preprocess_folder.py`, Finding 25).
 - [x] Headroom for bright corners: tried and dropped (it breaks Capture One's clipped-highlight
   handling; the clipped corners render white either way) (Finding 25).
-- [ ] Automate per-image settings by writing Capture One's sidecar, if its format can be worked out.
+- [x] Corrected copies open with the right settings: the batch tool writes Capture One sidecars
+  (Finding 28).
 - [x] README contact sheet: pre-processed + E5 vs Phocus vs Capture One default.
 - [x] E5 profiles for other lenses, automatically (`tools/auto_lens_profile.py`, Finding 26). Untested
   on a lens other than the two I own; worth checking on the first one.

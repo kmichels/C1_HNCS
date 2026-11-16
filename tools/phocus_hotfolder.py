@@ -110,10 +110,13 @@ class HotFolder:
         if _running():
             _quit()
         subprocess.run(["defaults", "import", DOMAIN, self.backup], check=True)
-        if self.was_running:
-            subprocess.run(["open", "-a", "Phocus"], check=True)
         if self.owns_root:  # move exports out before leaving the with block
             shutil.rmtree(self.root, ignore_errors=True)
+        if self.was_running:
+            for _ in range(5):  # right after quitting, Launch Services can refuse (-600); retry
+                if subprocess.run(["open", "-a", "Phocus"], capture_output=True).returncode == 0:
+                    break
+                time.sleep(3)
         return False
 
     def _exports(self):

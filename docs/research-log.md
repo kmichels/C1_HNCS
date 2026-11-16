@@ -918,3 +918,73 @@ new lens's grids. Rebuilt this way, the 28P profile comes out within 0.16 ΔE00 
 and f/16; 35-100 at 35 mm and 100 mm): Phocus with lens corrections on, Capture One with pre-processed
 copies and HNCS E5 (whole-frame median 0.25–0.75 ΔE00), and Capture One's defaults (2.95–6.27).
 `tools/contact_sheet.py` now builds it from finished renders.
+
+### Finding 27: Phocus normalises brightness per lens setting
+
+**In plain terms:** Phocus brightens or darkens each photo slightly depending on the lens, focal length
+and aperture, separately from its vignetting correction and whether or not lens corrections are on.
+Capture One doesn't, and the pre-processing maps missed it because they're measured relative to the
+frame centre. That explained most of the leftover per-frame lightness differences. The maps now carry
+it, and the frames that were off by 0.3–0.5 L\* come within about 0.1.
+
+- Flats at the same raw level (L\* 30, BaselineExposure 0) through Phocus, centre L\* by lens setting:
+  28P 30.45 at f/5.6–f/16, 30.78 at f/4; 35-100 31.43–31.63 at 35 mm, falling to 30.90–30.99 at 50–65
+  mm and back to 31.1–31.3 at 80–100 mm (31.69 at 100 mm f/4). Corrections on or off: the same.
+- As raw gains relative to each profile's reference setting (28P f/8, 35-100 35 mm f/11, the lens states
+  the E5 grids were made at): +0.020 stop for the 28P at f/4, −0.025 to −0.033 for the 35-100 at 45–75 mm.
+  Small in stops, about 0.5 L\* in the midtones.
+- Before the fix, the 29 validation frames' lightness offsets correlated +0.67 with this.
+- `make_preprocess_map.py` now stores the flat's centre Lab; `preprocess_3fr.py` multiplies the map by
+  the gain between that and the reference state's (`fit/lens_references.json`); flats get
+  BaselineExposure 0; all maps remade.
+- 14 validation frames re-rendered (lightness offset dL\*, median ΔE00, before → after): B0000702
+  +0.49 → −0.17, 0.65 → 0.50; B0000646 +0.36 → −0.06; B0000671 +0.33 → −0.11; B0000658 +0.35 → +0.03;
+  B0000711 +0.48 → +0.13; B0000822 +0.38 → +0.01, 0.37 → 0.25; B0000926 −0.26 → +0.10; B0000929
+  −0.54 → −0.18, 0.75 → 0.51; B0000939 −0.39 → 0.00, 0.54 → 0.42. Mean |dL\*| 0.33 → 0.12 (11 frames
+  scored first), mean median ΔE00 about 0.55 → 0.47 (14). B0000846, at the same setting as B0000702,
+  went from −0.24 to −0.45: its remaining offset is something in that frame.
+
+### Finding 28: corrected copies can open with the right settings
+
+**In plain terms:** Capture One reads a small settings file next to each image the first time it sees it.
+The batch tool now writes one for every corrected copy, so the copies open with the lens's E5 profile,
+Linear Response and Light Falloff 0, and nothing needs applying.
+
+- The sidecar is `CaptureOne/Settings<version>/<name>.cos` (Settings1690 for Capture One 16.9.0), XML.
+  A sidecar with only the three settings was ignored and overwritten. With an image UUID, `Version`
+  1530, a `VAR` holding `ProductID` and its own UUID, and the three settings, Capture One applies them and
+  fills in the rest itself, including the image's own lens data. A full sidecar copied from another
+  frame also works but carries that frame's aperture and distortion curves, so the minimal one is used.
+- End to end: `preprocess_folder.py` into the session's Capture folder; all 14 copies opened with the
+  right profile, Linear Response and Light Falloff 0.
+- Capture One still applies its own distortion-correction default per image (100 on some frames, 0 on
+  others); that's geometry, not colour, and left alone.
+
+### Finding 29: where Phocus's lens behaviour comes from
+
+**In plain terms:** Phocus doesn't read lens corrections from the raw. The camera records a 34-byte lens
+identity in two maker-note entries, and Phocus looks the lens up in data built into the app. Copy those
+two entries from a 28P raw into a 35-100 file and Phocus treats it as a 28P in every way: colour shading,
+edge lift, vignetting correction and brightness.
+
+35-100 flat field (35 mm f/11) with maker-note entries copied from a 28P raw (f/8); green gain and B−G in
+stops at r 0.6 / 0.9, corrections off, and centre L\*:
+
+| file | green gain | B−G | centre L\* |
+|---|---|---|---|
+| 35-100 flat | +0.07 / +0.24 | −0.04 / −0.07 | 31.43 |
+| 28P flat | +0.29 / +0.89 | −0.13 / −0.21 | 30.42 |
+| 35-100 + all 28P maker-note entries | +0.29 / +0.89 | −0.13 / −0.21 | 30.42 |
+| 35-100 + 28P EXIF lens name only | as the 35-100 | | |
+| 35-100 + 28P 0x0017 and 0x0018 | +0.29 / +0.89 | −0.13 / −0.21 | 30.42 |
+| 35-100 + 28P 0x0018 only | 0 / 0 | 0 / 0 | 29.97 |
+
+- Bisected from all 26 differing entries; the large blocks (0x0042, 0x004b, 0x0064–0x0074) do nothing.
+  0x0018 (17 bytes) with 0x0017 (17 bytes) carries the lens identity; 0x0018 alone, mismatched with the
+  rest, switches lens processing off entirely, which shows Phocus's "no lens" baseline (L\* 29.97 at the
+  centre against 30.42 for the 28P and 31.43 for the 35-100 at 35 mm f/11).
+- Corrections on behave the same way (all entries: +1.05 / +2.27 stops like the 28P).
+- The raw can't hold the tables (the whole maker note is 22.5 KB). Phocus's HBUtil framework is 119 MB
+  and names every XCD lens (21, 28P, 30, 35-75, 35-100E, 45, 45P, 65, 80, 90, 120, 135 …), which is
+  where the lens data must live. blog.tonalphoto.com found the same per-lens files in the camera's
+  firmware; Phocus carries its own copy.

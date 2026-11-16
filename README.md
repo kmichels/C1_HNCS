@@ -88,7 +88,9 @@ shading built into the sensor data. Your original is only read. Render the copy 
 
 `--make-maps` measures any lens setting it hasn't seen; `--make-profiles` builds an E5 profile and styles
 for any lens other than the 28P and 35-100 (about five minutes, Phocus only) and installs them; restart
-Capture One afterwards. Both drive Phocus unattended, so don't use it while they run.
+Capture One afterwards. Both drive Phocus unattended, so don't use it while they run. Each copy gets a
+Capture One settings file, so it opens with the right profile, Linear Response and Light Falloff 0 the
+first time Capture One sees it; for files Capture One already knows, apply the "(pre-processed)" style.
 
 Import the `Corrected` folder (same file names), or run `tools/preprocess_3fr.py` on single files.
 
@@ -110,7 +112,9 @@ the corners).
   ones. The 28P tungsten profile is checked only on synthetic data.
 - **XCD 28P at f/5.6 and narrower.** Phocus corrects vignetting more strongly than Capture One's Light
   Falloff 120, so the edges stay darker than Phocus (it matches at f/4).
-- **Variation between frames.** Some frames come out 0.5–1 L* darker than Phocus overall.
+- **Variation between frames.** Phocus adjusts brightness slightly by lens setting; pre-processing
+  includes that, the profile-only routes don't (up to about ±0.5 L\* on the 35-100 between 45 and 75 mm).
+  About ±0.2 L\* per frame remains unexplained.
 - **Phocus defaults only.** The match is to Phocus's Standard response in its default working space.
   Other responses or working spaces render 3–7 ΔE00 differently.
 

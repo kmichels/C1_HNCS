@@ -4,8 +4,13 @@ copies are skipped. With --make-maps, missing maps are made first through Phocus
 --make-profiles, an E5 profile and styles are built for any lens that has none (auto_lens_profile.py,
 installed into Capture One; restart it afterwards).
 
+Each copy also gets a Capture One settings sidecar (OUT_DIR/CaptureOne/Settings<version>/<name>.cos) that
+opens it with the lens's E5 profile, Linear Response and Light Falloff 0, so no style needs applying.
+Capture One reads it when it first sees the file (a session folder, or browsing to OUT_DIR); for an image it
+already knows, apply the "(pre-processed)" style instead.
+
 usage: python preprocess_folder.py IN_DIR OUT_DIR [--maps fit/preprocess_maps] [--make-maps] [--make-profiles]
-       [--body-gains]
+       [--body-gains] [--no-sidecars]
 """
 import argparse
 import glob
@@ -23,6 +28,7 @@ ap.add_argument("--maps", default=os.path.join(HERE, "..", "fit", "preprocess_ma
 ap.add_argument("--make-maps", action="store_true", help="make missing maps with Phocus first (restarts Phocus)")
 ap.add_argument("--make-profiles", action="store_true", help="build an E5 profile for lenses without one (Phocus)")
 ap.add_argument("--body-gains", action="store_true")
+ap.add_argument("--no-sidecars", action="store_true", help="don't write Capture One settings sidecars")
 a = ap.parse_args()
 if os.path.realpath(a.inp) == os.path.realpath(a.out):
     sys.exit("OUT_DIR must differ from IN_DIR (corrected copies keep the original file names)")
@@ -43,6 +49,40 @@ if no_profile and a.make_profiles:
     for n in no_profile:
         subprocess.run([sys.executable, "-I", os.path.join(HERE, "auto_lens_profile.py"), *by_lens[n], "--install"], check=True)
     no_profile = [n for n in no_profile if not os.path.exists(os.path.join(HERE, "..", "profiles", f"HasselbladX2DII100C-HNCS E5 {n}.icm"))]
+def c1_settings_dir():
+    import plistlib
+    try:
+        v = plistlib.load(open("/Applications/Capture One.app/Contents/Info.plist", "rb"))["CFBundleShortVersionString"]
+        return "Settings" + "".join(v.split(".")[:3])
+    except (OSError, KeyError):
+        return "Settings1690"
+
+
+def write_sidecar(dst, name):
+    import uuid
+    d = os.path.join(os.path.dirname(dst), "CaptureOne", c1_settings_dir())
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, os.path.basename(dst) + ".cos")
+    if os.path.exists(path):
+        return
+    with open(path, "w") as f:
+        f.write(f'''<?xml version="1.0"?>
+<IMG>
+	<E K="UUID" V="{str(uuid.uuid4()).upper()}" />
+	<E K="Version" V="1530" />
+	<VAR Engine="1300">
+		<E K="ProductID" V="HasselbladX2DII100C" />
+		<E K="UUID" V="{str(uuid.uuid4()).upper()}" />
+		<DL>
+			<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />
+			<E K="ICCProfile" V="HasselbladX2DII100C-HNCS E5 {name}.icm" />
+			<E K="LensLightFallOff" V="|0|1" />
+		</DL>
+	</VAR>
+</IMG>
+''')
+
+
 done, skipped = 0, []
 for r in todo:
     key = lens_state(r)[0]
@@ -58,6 +98,9 @@ for r in todo:
         if os.path.exists(dst + ".part"):
             os.remove(dst + ".part")
         continue
+    lens_name = profile_name(lens_state(r)[1])
+    if not a.no_sidecars and lens_name not in no_profile:
+        write_sidecar(dst, lens_name)  # before the raw appears, so Capture One finds it on first sight
     os.replace(dst + ".part", dst)
     done += 1
     print(f"{os.path.basename(r)}: {res.stdout.strip().splitlines()[0]}", flush=True)
@@ -66,4 +109,5 @@ print(f"\n{done} written, {len(raws) - len(todo)} already there, {len(skipped)} 
 for n in sorted(by_lens):
     style = f"HNCS E5 {n} (pre-processed)"
     note = " (no profile yet: run with --make-profiles)" if n in no_profile else ""
-    print(f"{n}: render the copies with the style '{style}'{note}")
+    how = "opens with it already (sidecar)" if not a.no_sidecars and n not in no_profile else f"apply the style '{style}'"
+    print(f"{n}: {how}{note}")

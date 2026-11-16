@@ -24,7 +24,7 @@ import tifffile
 from scipy.interpolate import RegularGridInterpolator
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from make_preprocess_map import lens_state  # noqa: E402
+from make_preprocess_map import FIT, global_gain, lens_state, profile_name, reference_state  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("inp"); ap.add_argument("out")
@@ -34,6 +34,7 @@ g_.add_argument("--maps", help="folder of make_preprocess_map.py maps; picks the
 ap.add_argument("--body-gains", action="store_true", help="also normalise the body to the reference factory gains")
 ap.add_argument("--ref", default="2.600,2.260")
 ap.add_argument("--uid", default=None)
+ap.add_argument("--no-lens-brightness", action="store_true", help="skip Phocus's per-lens-state brightness normalisation")
 a = ap.parse_args()
 if os.path.exists(a.out):
     sys.exit(f"{a.out} exists; not overwriting")
@@ -66,6 +67,16 @@ H, W = (int(v) for v in z["shape"])
 scale = ch / H  # raw photosites per export pixel (2 for a 50% export)
 assert abs(scale - cw / W) < 0.01, "map shape doesn't match the active area's aspect"
 nby, nbx = gain.shape[:2]
+gg = 1.0
+if not a.no_lens_brightness:
+    name = profile_name(lens_state(a.inp)[1])
+    ref = reference_state(name)
+    lut = next((p for p in (os.path.join(FIT, f"lut_e5_{name}.npz"), os.path.join(FIT, f"lut_e5_{name.lower()}.npz")) if os.path.exists(p)), None)
+    ref_path = os.path.join(os.path.dirname(mp), f"{ref}.npz") if ref else None
+    if ref_path and lut and os.path.exists(ref_path):
+        gg = global_gain(mp, ref_path, lut)
+        gain = gain * gg
+print(f"lens-state brightness: x{gg:.4f} ({np.log2(gg):+.3f} stop)")
 ys = cy0 + (np.arange(nby) + 0.5) * b * scale
 xs = cx0 + (np.arange(nbx) + 0.5) * b * scale
 

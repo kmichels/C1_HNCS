@@ -101,7 +101,12 @@ try:
         f.write(f'<?xml version="1.0"?>\n<SL Engine="1300">\n\t<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />\n'
                 f'\t<E K="ICCProfile" V="{icc}" />\n\t<E K="LensLightFallOff" V="|0|1" />\n\t<E K="Name" V="{pp}" />\n'
                 f'\t<E K="StyleSource" V="Styles" />\n\t<E K="UUID" V="{str(uuid.uuid4()).upper()}" />\n</SL>\n')
-    print(f"wrote {os.path.join(prof_dir, icc)}, styles '{pname}' and '{pp}', table {lut_path}")
+    import json
+    refs_path = os.path.join(a.out or os.path.join(REPO, "fit"), "lens_references.json")
+    refs = json.load(open(refs_path)) if os.path.exists(refs_path) else {}
+    refs[name] = lens_state(host)[0]
+    json.dump(refs, open(refs_path, "w"), indent=2)
+    print(f"wrote {os.path.join(prof_dir, icc)}, styles '{pname}' and '{pp}', table {lut_path}; reference lens state {refs[name]}")
     if a.install:
         shutil.copyfile(os.path.join(prof_dir, icc), os.path.expanduser(f"~/Library/ColorSync/Profiles/{icc}"))
         for s in (pname, pp):
