@@ -160,12 +160,16 @@ Full detail, with every number, is in [research-log.md](research-log.md). In sho
   AsShotNeutral (IFD0 and the maker-note copy); both apps read it.
 - **Driving Phocus without its GUI.** Turn on its hot folder in the preferences (`AutoExport`,
   `exportDirectory`), drop a `.phos` sidecar with the wanted settings, then the raw; the export appears
-  in about 10 s.
+  in about 10 s. Phocus watches the folder it reopens on launch, which is the last entry of its
+  `ThumbnailsRecent` list (macOS bookmarks), so `tools/phocus_hotfolder.py` appends a bookmark to a private
+  folder under `~/Pictures` (macOS wouldn't let Phocus read one under `~/Documents`), waits for the export
+  to finish writing (Phocus creates it empty first), and restores the preferences afterwards.
 - **What changes Phocus's output.** Transplanting metadata between otherwise identical files
   (`tools/makernote_transplant.py`): firmware string and serial have no effect. Maker-note entry 0x0019,
   a factory "GAIN" calibration record, does. Within it, only two half-float channel gains matter.
 - **Lens metadata.** The same pixels tagged XCD 28P render 0.8 L* darker at the centre than tagged XCD
-  35-100.
+  35-100. The tag that matters is a 34-byte lens identity in maker-note entries 0x0017 and 0x0018; Phocus
+  looks the lens up in data built into the app (Finding 29). The EXIF lens name does nothing.
 - **Spatial processing.** Synthetic flat fields inverted through a centre-accurate table give Phocus's
   per-channel gain across the frame (`tools/flat_gain.py`):
   - a lens-specific colour shading (less blue toward the edges, on or off);
@@ -179,6 +183,41 @@ Full detail, with every number, is in [research-log.md](research-log.md). In sho
   - Capture One's LCC colour correction is (reference mean ÷ reference)^1.14 per channel. So the maps
     are scaled by 0.875, and the E5 "LCC" profiles undo the LCC's overall colour shift in their input
     curves.
+
+## Pre-processing: Phocus's spatial processing written into the raw
+
+The closest route (Findings 22, 24, 27). Phocus's lens correction is a fixed multiplier on the raw values,
+so it can be applied before Capture One sees the file.
+
+1. **Measure.** A synthetic flat (L\* 30, BaselineExposure 0) with the lens state of a real raw, rendered by
+   Phocus with lens corrections on; `tools/flat_gain.py` inverts it through the lens's E5 table into a
+   per-channel gain map in Capture One's camera-RGB scale.
+2. **Convert to raw gains.** Capture One's Linear Response isn't proportional to raw values in the shadows
+   (0.17× at 1% of full scale, 0.64× at 10%, 0.75× above 60%; `fit/c1_response.npz`), so each gain is
+   converted to the raw gain that produces it at the flat's level (`tools/make_preprocess_map.py`).
+   Skipping this over-brightened the edges by 4–6 L\*.
+3. **Add the lens-setting brightness.** Phocus also scales overall brightness by lens, focal length and
+   aperture (Finding 27). The map keeps the flat's centre Lab; `preprocess_3fr.py` adds the gain between
+   it and the profile's reference setting (`fit/lens_references.json`).
+4. **Apply.** `tools/preprocess_3fr.py` multiplies every photosite by its interpolated gain in a copy;
+   photosites already clipped in camera stay at white so Capture One still treats them as clipped.
+   Maps are cached by lens state (`fit/preprocess_maps/`); `tools/auto_maps.py` makes missing ones.
+5. **Open in Capture One.** `tools/preprocess_folder.py` also writes a minimal Capture One sidecar
+   (`CaptureOne/Settings<version>/<name>.cos`: image UUID, `Version`, a `VAR` with `ProductID` and UUID,
+   and the profile, Linear Response and Light Falloff 0). Capture One reads it the first time it sees the
+   file and fills in the rest, including the image's own lens data. A sidecar with only the three settings
+   is ignored.
+
+Scaling the whole raw down and raising BaselineExposure to keep corner highlights renders identically but
+breaks Capture One's clipped-highlight handling, so it isn't done (Finding 25).
+
+## New lenses without Capture One
+
+`tools/auto_lens_profile.py` builds an E5 profile for any lens from Phocus renders alone (Finding 26).
+Capture One turns each synthetic patch value into the same camera RGB whatever the lens or white balance
+(spread 0.0003 across 24 grids), so its side of every pair comes from `fit/c1_patch_lookup.npz`. Its
+per-channel response curve alone isn't enough: for very saturated patches Capture One mixes into the empty
+channel. Synthetic copies must have BaselineExposure 0, because the lookup was measured at 0.
 
 ## Gotchas found along the way
 
@@ -201,29 +240,30 @@ Full detail, with every number, is in [research-log.md](research-log.md). In sho
 **Capture One**
 
 - New profiles and styles need a restart to appear.
+- Light Falloff defaults to 100 for XCD lenses, so styles for pre-processed raws set it to 0.
+- Its distortion-correction default varies from image to image (100 on some, 0 on others).
+- In AppleScript, `highlight adjustment` −100 recovers highlights and +100 brightens them.
+- A session's Output folder is part of the session; delete it and recipes fail with error −43.
 - Reset adjustments turns distortion correction back on. Leave it on for a pixel-level comparison
   against a Phocus export that only corrected vignetting, and fine texture shows up as large ΔE.
 - See [../tools/README.md](../tools/README.md) for AppleScript quirks.
 
 ## Limits
 
-- **One camera.** The profile only applies to the X2D II 100C.
-- **Scenes.** Your frames are daylight outdoor scenes; the DPReview frames add portraits, saturated
-  and artificial colours and warm light, but from another body, so their overall balance is
-  offset to yours. Colours in neither set follow the smooth base model and are untested.
-- **White balance.** Daylight range only (about 4800–6500 K). Tungsten needs its own profile.
-- **Lenses.** Phocus renders greys about 1 b* differently on the 28P and the 35-100; the profile
-  averages them.
-- **Per-frame exposure.** Some frames come out 0.5–1 L* darker than Phocus overall. The cause is
-  unknown and a profile can't fix it.
-- **Highlights.** Above Phocus's white (L* 95+) the table fades to neutral, and Capture One's
-  highlight recovery differs from Phocus's.
-- **28P corners.** With lens corrections on, they stay about half a stop darker than Phocus even at
-  Light Falloff 120. A flat-field (LCC) shot would fix this.
-- **Not modelled.** Phocus HDR mode.
+- **One camera model.** The profiles apply to the X2D II 100C; other bodies differ by their factory gains,
+  which `tools/body_gains.py` corrects.
+- **Lenses.** Per-lens E5 profiles exist for the 28P and 35-100; `tools/auto_lens_profile.py` can build
+  more, untested so far on a lens other than those two. E4 covers any lens at lower accuracy.
+- **White balance.** The main profiles average 4700–6300 K; tungsten profiles cover about 3100–4200 K.
+  Mixed light and the gap between the two are untested.
+- **Per-frame exposure.** Mostly explained by Phocus's per-lens-setting brightness, which pre-processing
+  includes (Finding 27); about ±0.2 L\* per frame remains. The profile-only routes don't include it.
+- **Highlights.** Phocus keeps colour in partly clipped highlights and its Highlight Recovery rebuilds
+  clipped channels; Capture One doesn't (Finding 23). No profile can change that.
+- **Profile-only routes.** Without pre-processing, the 28P's corners at f/5.6 and narrower stay darker
+  than Phocus even at Light Falloff 120.
+- **Not modelled.** Phocus HDR mode, and its Reproduction responses and other working spaces.
 
 ## Ideas for next steps
 
-See [open-questions.md](open-questions.md): per-lens profiles, a tungsten profile, the source offset,
-the 28P corners. For each new lens, measure its edge lift (step 6 in the tools README) and run a
-Light Falloff check.
+See the work list in [open-questions.md](open-questions.md).

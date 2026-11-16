@@ -12,7 +12,35 @@ processing, so a per-frame median well under 1 is near the practical floor for t
 reference, the Lightroom profile by blog.tonalphoto.com that inspired this project reached a median
 of 0.94.
 
-## HNCS E5 (current, per lens, with an LCC)
+## Pre-processed raws + HNCS E5 (closest)
+
+Phocus's lens correction, colour shading and per-lens-setting brightness are written into a copy of the
+raw (`tools/preprocess_3fr.py`); Capture One renders the copy with the plain E5 profile, Light Falloff 0
+and no LCC. Reference: Phocus with lens corrections on (vignetting), As Shot. Whole frame (r < 0.95),
+per 32 px block at 50%, clipped and busiest blocks left out (`tools/score_render.py`).
+
+**23 photos not used in any fit** (Finding 24), median ΔE00:
+
+| | pre-processed + E5 | E5 LCC + LF 120 + colour LCC | E4 + LF 120 |
+|---|---|---|---|
+| 28P (7 frames) | **0.65** (0.38–0.91) | 1.38 (1.09–1.86) | 2.07 (1.72–2.39) |
+| 35-100 (16 frames) | **0.49** (0.26–0.61) | 0.64 (0.44–0.87) | 0.65 (0.35–1.20) |
+
+The pre-processed error is flat from centre to corner; the other routes run several L\* dark in the
+28P's corners.
+
+**With the per-lens-setting brightness added** (Finding 27), 14 of those frames re-rendered: mean lightness
+offset 0.33 → 0.12 L\*, mean median ΔE00 about 0.55 → 0.47 (for example B0000702 0.65 → 0.50, B0000929
+0.75 → 0.51, B0000939 0.54 → 0.42).
+
+## HNCS E5 Tungsten
+
+Fitted on synthetic grids at 3100–4200 K (Finding 21). Three real tungsten-lit 35-100 photos (another
+body, its factory gains applied), frame centre, median ΔE00: daylight E5 1.95 / 2.77 / 2.75, E5
+Tungsten **1.71 / 1.07 / 1.03**. The 28P tungsten profile is checked on synthetic grids only (0.5 at
+3400–3750 K, 1.2 at the ends of the range).
+
+## HNCS E5 with an LCC (profile route)
 
 Fitted only on synthetic raws (colour patches with exactly known camera RGB, written into copies of
 the owner's raws and rendered by Phocus): per lens, a 33³ grid at one white balance plus 22³ grids at
@@ -141,16 +169,17 @@ that. The `+ Light Falloff 120` style renders pixel-identical to setting 120 by 
 
 ## Contact sheet
 
-Made with HNCS E3, before E4. On these four frames E4 scores within about 0.1 of E3 against Phocus.
+![Phocus vs Capture One pre-processed + HNCS E5 vs Capture One default](images/contact-sheet.jpg)
 
-![Phocus vs Capture One + HNCS E3 vs Capture One default](images/contact-sheet.jpg)
-
+- Six of the owner's frames, none used in fitting E5: 28P at f/16, f/5.6 and f/4; 35-100 at 35 mm f/11
+  (two) and 100 mm f/4.
 - Phocus: Standard preset, lens corrections ON (vignetting only).
-- Capture One + HNCS E3: the `HNCS E3 + Light Falloff 120` style.
-- Capture One default: reset adjustments (ProStandard, Auto curve, Light Falloff 100).
-- Distortion correction is off in both apps so the pixels line up; every panel is drawn from the same
-  per-block mean Lab grid that the scores use. Scores cover the whole frame, corners included.
-- Frames 623 and 679 were held out of the colour fit; 901 and 917 were in it.
+- Middle: Capture One rendering a pre-processed copy with `HNCS E5 … (pre-processed)`: whole-frame
+  median 0.25–0.75 ΔE00.
+- Right: Capture One defaults (ProStandard, Auto curve, Light Falloff 100): 2.95–6.27.
+- Distortion correction is off so the panels line up. Made with `tools/contact_sheet.py` before the
+  per-lens-setting brightness was added to the maps (Finding 27), which would move the 28P f/4 and
+  35-100 100 mm f/4 frames by a few tenths of an L\*.
 
 ## Phocus edge brightening with corrections off
 
@@ -164,6 +193,14 @@ centre-calibrated LUT (r = distance from the centre / half-diagonal):
 
 For the 35-100, single frames range from 0.02 to 0.11 stop at r = 0.6, a little less at 75–100 mm
 than at 35–60 mm, across f/8 to f/16.
+
+## Highlights
+
+Not a match number, but measured (Findings 23 and 25): at default settings both apps reach white about a
+quarter stop before the sensor clips, with the same tones. Where one raw channel clips, Phocus keeps some
+colour (median chroma 17 against 0). Phocus's Highlight Recovery rebuilds clipped channels and keeps tone
+up to about 1.5 stops past clipping; Capture One's Highlight slider only compresses tones below clipping.
+No profile can change this.
 
 ## History
 

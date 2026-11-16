@@ -88,7 +88,9 @@ steps 1–5, or ask the repo owner for the pairs archive.
 Measure Phocus with designed inputs instead of photographs. Background and results:
 [../docs/research-log.md](../docs/research-log.md).
 
-**Drive Phocus's hot folder without its GUI.** Quit Phocus, then:
+**Drive Phocus's hot folder without its GUI.** `phocus_hotfolder.py` does all of this from Python (a
+private watch folder under `~/Pictures`, one sidecar per file, preferences restored); the tools below use
+it. By hand: quit Phocus, then:
 
 ```sh
 defaults export dk.hasselblad.phocus phocus-prefs-backup.plist      # keep a copy
@@ -117,7 +119,7 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `compare_gain_maps.py C1_FLAT_RENDER PHOCUS_MAP` | Capture One's spatial gain (Light Falloff, LCC) vs Phocus's |
 | `make_lcc_raw.py HOST OUT --colour MAP` | LCC reference raw that reproduces a colour shading map |
 | `write_profile.py … --input-gain r,g,b` | Profile with per-channel input gain (used to undo an LCC's overall shift) |
-| `preprocess_folder.py IN_DIR OUT_DIR [--make-maps] [--make-profiles]` | Corrected copies of a whole folder, making missing maps and lens profiles with Phocus |
+| `preprocess_folder.py IN_DIR OUT_DIR [--make-maps] [--make-profiles] [--no-sidecars]` | Corrected copies of a whole folder, making missing maps and lens profiles with Phocus; each copy gets a Capture One settings sidecar so it opens with the E5 profile, Linear Response and Light Falloff 0 |
 | `auto_lens_profile.py RAW … [--name N] [--install]` | Build an HNCS E5 profile + styles for any lens from its raws, using only Phocus (Capture One's side comes from `fit/c1_patch_lookup.npz`) |
 | `preprocess_3fr.py IN OUT --maps DIR` | Corrected copy of a 3FR with Phocus's lens correction and colour shading in the raw ([pre-processing](#pre-processing)) |
 | `make_preprocess_map.py FLAT_GAIN FLAT.3fr DIR` | Raw-gain map for a lens state, from Phocus's render of a synthetic flat |
@@ -153,4 +155,10 @@ python tools/flat_gain.py fit/lut_e5_28p.npz PHOCUS_EXPORT.tif flat_gain.npz    
 python tools/make_preprocess_map.py flat_gain.npz flat.3fr fit/preprocess_maps
 ```
 
-Then `preprocess_3fr.py IN OUT --maps fit/preprocess_maps` picks the map from the file's metadata.
+Then `preprocess_3fr.py IN OUT --maps fit/preprocess_maps` picks the map from the file's metadata. It
+also applies Phocus's per-lens-setting brightness: the gain between the map's centre and the map for the
+profile's reference setting (`fit/lens_references.json`; `--no-lens-brightness` turns it off).
+
+**Capture One sidecars.** `preprocess_folder.py` writes `OUT_DIR/CaptureOne/Settings<version>/<name>.cos`
+before each copy appears. Capture One honours it only for files it hasn't seen before; it needs the image
+UUID, `Version`, and a `VAR` with `ProductID` and its own UUID around the settings, or it ignores the file.
