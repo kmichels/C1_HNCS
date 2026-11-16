@@ -33,6 +33,14 @@ The pre-processed error is flat from centre to corner; the other routes run seve
 offset 0.33 → 0.12 L\*, mean median ΔE00 about 0.55 → 0.47 (for example B0000702 0.65 → 0.50, B0000929
 0.75 → 0.51, B0000939 0.54 → 0.42).
 
+**With maps per focus distance** (Finding 31), the three frames whose map changed: B0000929 0.51 → 0.41
+(lightness offset −0.18 → +0.05 L\*), B0000916 0.66 → 0.67 (+0.16 → +0.02 L\*), B0000822 0.25 → 0.26.
+
+**XCD 38V** (profile built by `tools/auto_lens_profile.py` from Phocus renders alone, Finding 32), nine of
+the owner's frames, none used in fitting: median ΔE00 **0.35–0.53** (mean 0.41), p90 0.54–0.93, flat from
+centre to corner, about 0.2 L\* darker than Phocus throughout. Eight of the nine are one scene at
+f/2.5–f/8.
+
 ## HNCS E5 Tungsten
 
 Fitted on synthetic grids at 3100–4200 K (Finding 21). Three real tungsten-lit 35-100 photos (another

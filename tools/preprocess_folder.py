@@ -20,7 +20,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from make_preprocess_map import lens_state, profile_name  # noqa: E402
+from make_preprocess_map import find_map, lens_state, profile_name  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("inp"); ap.add_argument("out")
@@ -37,10 +37,10 @@ if not raws:
     sys.exit(f"no .3fr files in {a.inp}")
 os.makedirs(a.out, exist_ok=True)
 todo = [r for r in raws if not os.path.exists(os.path.join(a.out, os.path.basename(r)))]
-missing = sorted({lens_state(r)[0] for r in todo if not os.path.exists(os.path.join(a.maps, lens_state(r)[0] + ".npz"))})
-if missing and a.make_maps:
+keys = {r: lens_state(r)[0] for r in todo}
+if a.make_maps and any(not os.path.exists(os.path.join(a.maps, k + ".npz")) for k in keys.values()):
     subprocess.run([sys.executable, "-I", os.path.join(HERE, "auto_maps.py"), *todo, "--maps", a.maps], check=True)
-    missing = sorted({lens_state(r)[0] for r in todo if not os.path.exists(os.path.join(a.maps, lens_state(r)[0] + ".npz"))})
+missing = sorted({k for k in keys.values() if find_map(a.maps, k) is None})
 by_lens = {}
 for r in raws:
     by_lens.setdefault(profile_name(lens_state(r)[1]), []).append(r)
@@ -85,7 +85,7 @@ def write_sidecar(dst, name):
 
 done, skipped = 0, []
 for r in todo:
-    key = lens_state(r)[0]
+    key = keys[r]
     if key in missing:
         skipped.append(os.path.basename(r)); continue
     dst = os.path.join(a.out, os.path.basename(r))

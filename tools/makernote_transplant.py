@@ -32,30 +32,35 @@ def entries(path):
     return out
 
 
-ap = argparse.ArgumentParser()
-ap.add_argument("target"); ap.add_argument("donor"); ap.add_argument("out"); ap.add_argument("tags")
-ap.add_argument("--uid", default=None)
-a = ap.parse_args()
-T, D = entries(a.target), entries(a.donor)
-if a.tags == "all":
-    tags = [t for t in T if t in D and T[t]["size"] == D[t]["size"] and T[t]["raw"] != D[t]["raw"]]
-else:
-    tags = [int(x, 16) for x in a.tags.split(",")]
-shutil.copyfile(a.target, a.out)
-done, skipped = [], []
-with open(a.out, "r+b") as f:
-    for tag in tags:
-        if tag not in T or tag not in D or T[tag]["size"] != D[tag]["size"] or T[tag]["typ"] != D[tag]["typ"]:
-            skipped.append(f"0x{tag:04x}")
-            continue
-        f.seek(T[tag]["loc"])
-        f.write(D[tag]["raw"])
-        done.append(f"0x{tag:04x}")
-    if a.uid:
-        with tifffile.TiffFile(a.target) as t:
-            uo = t.pages[0].tags["RawDataUniqueID"].valueoffset
-        f.seek(uo)
-        f.write(a.uid.encode()[:16].ljust(16, b"0"))
-chk = entries(a.out)
-assert all(chk[int(t, 16)]["raw"] == D[int(t, 16)]["raw"] for t in done)
-print(f"{a.out}: transplanted {len(done)} entries {','.join(done)}; skipped {skipped}")
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("target"); ap.add_argument("donor"); ap.add_argument("out"); ap.add_argument("tags")
+    ap.add_argument("--uid", default=None)
+    a = ap.parse_args()
+    T, D = entries(a.target), entries(a.donor)
+    if a.tags == "all":
+        tags = [t for t in T if t in D and T[t]["size"] == D[t]["size"] and T[t]["raw"] != D[t]["raw"]]
+    else:
+        tags = [int(x, 16) for x in a.tags.split(",")]
+    shutil.copyfile(a.target, a.out)
+    done, skipped = [], []
+    with open(a.out, "r+b") as f:
+        for tag in tags:
+            if tag not in T or tag not in D or T[tag]["size"] != D[tag]["size"] or T[tag]["typ"] != D[tag]["typ"]:
+                skipped.append(f"0x{tag:04x}")
+                continue
+            f.seek(T[tag]["loc"])
+            f.write(D[tag]["raw"])
+            done.append(f"0x{tag:04x}")
+        if a.uid:
+            with tifffile.TiffFile(a.target) as t:
+                uo = t.pages[0].tags["RawDataUniqueID"].valueoffset
+            f.seek(uo)
+            f.write(a.uid.encode()[:16].ljust(16, b"0"))
+    chk = entries(a.out)
+    assert all(chk[int(t, 16)]["raw"] == D[int(t, 16)]["raw"] for t in done)
+    print(f"{a.out}: transplanted {len(done)} entries {','.join(done)}; skipped {skipped}")
+
+
+if __name__ == "__main__":
+    main()

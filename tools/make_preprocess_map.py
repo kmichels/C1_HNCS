@@ -4,7 +4,11 @@ flat_gain.py measures Phocus's per-channel gain in Capture One's camera-RGB scal
 Capture One's Linear Response isn't proportional to raw values in the shadows (fit/c1_response.npz), so
 each gain is converted to the raw gain that produces it at that level (and that BaselineExposure). The
 result is a plain multiplier on raw values, independent of exposure, and is saved under a name built
-from the lens state (lens, focal length, aperture) so preprocess_3fr.py --maps can find it.
+from the lens state (lens, focal length, aperture, focus code) so preprocess_3fr.py --maps can find it.
+
+Phocus reads the focus distance from byte 6 of maker-note entry 0x0018 (0 at infinity, rising as focus
+gets closer) and changes its vignetting correction and brightness with it, so the code is part of the
+state. A synthetic flat keeps its host raw's code.
 
 The map also keeps Phocus's absolute brightness at the frame centre (centre_lab, at the flat's level
 with BaselineExposure 0). Phocus normalises brightness per lens state (aperture, focal length) on top of
@@ -22,22 +26,45 @@ import numpy as np
 import tifffile
 
 
+def focus_code(path):
+    """Phocus's focus-distance input: byte 6 of maker-note entry 0x0018 (0 = infinity)."""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from makernote_transplant import entries
+    return entries(path)[0x0018]["raw"][6]
+
+
 def lens_state(path):
-    """(key, lens, focal mm, f-number) from a 3FR's EXIF."""
+    """(key, lens, focal mm, f-number) from a 3FR's EXIF and focus code."""
     with tifffile.TiffFile(path) as t:
         ex = t.pages[0].tags["ExifTag"].value
     lens = str(ex.get("LensModel", "unknown")).split("@")[0].strip()
     r = lambda v: v[0] / v[1] if isinstance(v, tuple) else float(v)
     focal, fnum = r(ex.get("FocalLength", (0, 1))), r(ex.get("FNumber", (0, 1)))
-    return f"{lens.replace(' ', '')}_{focal:.0f}mm_f{fnum:.1f}", lens, focal, fnum
+    return f"{lens.replace(' ', '')}_{focal:.0f}mm_f{fnum:.1f}_d{focus_code(path)}", lens, focal, fnum
 
 
-SHIPPED_NAMES = {"XCD 28P": "28P", "XCD 35-100E": "35-100"}
+def find_map(maps_dir, key):
+    """Path of the map for a lens-state key, or of the same lens, focal length and aperture at the nearest
+    focus code when that exact one hasn't been made; None if there's neither."""
+    exact = os.path.join(maps_dir, key + ".npz")
+    if os.path.exists(exact):
+        return exact
+    stem, code = key.rsplit("_d", 1)
+    near = []
+    for f in os.listdir(maps_dir) if os.path.isdir(maps_dir) else []:
+        s, _, c = f[:-4].rpartition("_d")
+        if f.endswith(".npz") and s == stem and c.isdigit():
+            near.append((abs(int(c) - int(code)), os.path.join(maps_dir, f)))
+    return min(near)[1] if near else None
+
+
+SHIPPED_NAMES = {"XCD 28P": "28P", "XCD 35-100E": "35-100", "XCD 38V": "38V"}
 FIT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "fit")
 
 
 def reference_state(name):
-    """Lens state the 'HNCS E5 <name>' profile was fitted at (fit/lens_references.json)."""
+    """Lens-state key the 'HNCS E5 <name>' profile was fitted at (fit/lens_references.json)."""
     import json
     refs = json.load(open(os.path.join(FIT, "lens_references.json")))
     return refs.get(name)

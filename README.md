@@ -21,12 +21,12 @@ This is a personal project. It's not affiliated with Hasselblad or Capture One.
 | What | a corrected copy of each raw, rendered with a per-lens profile | a per-lens profile plus a colour LCC per lens | one profile for every lens |
 | Whole frame vs Phocus with corrections on, 23 unseen photos (28P / 35-100) | **0.65 / 0.49** | 1.38 / 0.64 | 2.07 / 0.65 |
 | Needs | Python, and Phocus for lens settings not yet measured | an LCC reference per lens | nothing extra |
-| Lenses | 28P and 35-100 built in; others built automatically from your raws | 28P and 35-100 | any |
+| Lenses | 28P, 35-100 and 38V built in; others built automatically from your raws | 28P and 35-100 | any |
 
-Pre-processing writes Phocus's lens correction, colour shading and per-lens-setting brightness into a copy
-of the raw, so Capture One needs no LCC and no Light Falloff. The 28P's corners, which the profile-only
-routes can't match at f/5.6 and narrower, come out right. Your originals are only read. Details and
-numbers: [docs/results.md](docs/results.md).
+Pre-processing writes Phocus's lens correction, colour shading and per-lens-setting brightness (lens,
+focal length, aperture and focus distance) into a copy of the raw, so Capture One needs no LCC and no
+Light Falloff. The 28P's corners, which the profile-only routes can't match at f/5.6 and narrower, come
+out right. Your originals are only read. Details and numbers: [docs/results.md](docs/results.md).
 
 All three have daylight profiles (about 4700–6300 K); E5 also has **tungsten** versions (about
 3100–4200 K) for the 28P and 35-100.
@@ -48,11 +48,12 @@ Tested with Capture One 16.9 and Phocus 4.2.2 on macOS.
 ```
 
 - Writes a corrected copy of every raw into `Corrected` (same file names). Import or browse that folder.
-- Each copy gets a Capture One settings file, so it opens with the right profile (**HNCS E5 28P** or
-  **HNCS E5 35-100**), Linear Response and Light Falloff 0. For files Capture One has seen before, apply
-  the **HNCS E5 … (pre-processed)** style instead.
-- `--make-maps` measures any lens, focal length and aperture combination it hasn't seen
-  (`fit/preprocess_maps/` has 42 for the 28P and 35-100). `--make-profiles` builds an E5 profile and
+- Each copy gets a Capture One settings file, so it opens with the right profile (**HNCS E5 28P**,
+  **HNCS E5 35-100** or **HNCS E5 38V**), Linear Response and Light Falloff 0. For files Capture One
+  has seen before, apply the **HNCS E5 … (pre-processed)** style instead.
+- `--make-maps` measures any combination of lens, focal length, aperture and focus distance it hasn't
+  seen (`fit/preprocess_maps/` has 52 for the 28P, 35-100 and 38V; without `--make-maps` a missing focus
+  distance uses the nearest one measured). `--make-profiles` builds an E5 profile and
   styles for any other lens, from Phocus renders alone, and installs them (restart Capture One). Both run
   Phocus unattended, so don't use it meanwhile.
 - Costs: a full-size copy of each raw, and brightened corners use some highlight headroom (about 2% of
@@ -124,10 +125,10 @@ The step-by-step notes are in [docs/research-log.md](docs/research-log.md); the 
 ## Repository layout
 
 ```
-profiles/   HNCS E5 28P / 35-100 (plain, for pre-processed raws); E5 … LCC and LCC Tungsten; HNCS E4
+profiles/   HNCS E5 28P / 35-100 / 38V (plain, for pre-processed raws); E5 … LCC and LCC Tungsten; HNCS E4
 styles/     "(pre-processed)", plain and "+ Light Falloff 120" styles for each profile
 fit/        lut_e4.npz, lut_e5_*.npz            fitted 33³ tables before ICC encoding
-            preprocess_maps/  Phocus's spatial processing by lens state, as raw gains
+            preprocess_maps/  Phocus's spatial processing by lens, focal length, aperture and focus, as raw gains
             lens_references.json, c1_response.npz, c1_patch_lookup.npz   pre-processing and new-lens data
             lcc/          colour shading maps for the LCC references, and the profiles' input gains
             synthetic/    Phocus's renders of the synthetic patches (camera RGB → Lab) and flat-field maps

@@ -145,8 +145,9 @@ restored; don't use it meanwhile):
 python tools/auto_maps.py ~/Pictures/MySession/Capture/*.3FR
 ```
 
-By hand, for a lens state that `fit/preprocess_maps/` doesn't have (lens, focal length, aperture; focus
-distance and exposure don't matter):
+By hand, for a lens state that `fit/preprocess_maps/` doesn't have (lens, focal length, aperture and
+focus code, which is byte 6 of maker-note 0x0018; the synthetic flat keeps its host raw's; exposure
+doesn't matter):
 
 ```sh
 python tools/make_synthetic_raw.py ANY_RAW_WITH_THAT_LENS_STATE.3fr flat.3fr --flat 30

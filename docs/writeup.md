@@ -11,8 +11,8 @@ things about Phocus that I haven't seen written up anywhere, and they seemed wor
 ## Quickly
 
 - **Capture One profiles that land about 0.5 ΔE00 from Phocus** at the frame centre, on frames never
-  used in fitting. One per lens for the XCD 28P and 35-100, plus tungsten versions, and a lens-agnostic
-  one.
+  used in fitting. One per lens for the XCD 28P, 35-100 and 38V, tungsten versions of the first two, and
+  a lens-agnostic one.
 - **A pre-processing step that gets the whole frame there.** It writes Phocus's lens correction and colour
   shading into a copy of the raw, and Capture One renders the copy with a plain profile. On 23 of my
   photos that no fit had seen, the whole-frame median is 0.65 on the 28P and 0.49 on the 35-100.
@@ -22,8 +22,8 @@ things about Phocus that I haven't seen written up anywhere, and they seemed wor
   channel in Hasselblad's own RGB space, whose definition ships inside Phocus. That may matter for a DCP,
   because Adobe applies its tone curve differently.
 - **Some smaller things:** the Response and Working Space menus decoded; vignetting correction is a plain
-  multiplier on the raw values; focus distance made no difference on my two lenses; and Phocus's
-  highlight recovery really does rebuild clipped channels.
+  multiplier on the raw values; Phocus reads focus distance from one byte of the lens data and adjusts
+  that correction with it; and Phocus's highlight recovery really does rebuild clipped channels.
 
 ## Slowly
 
@@ -119,11 +119,14 @@ corrections are on or off. With the 35-100, a mid-grey renders about half an L\*
 at 35 mm f/11; the 28P is a touch brighter at f/4 than at f/8. Capture One doesn't do this, and it turned
 out to be most of the frame-to-frame lightness differences I couldn't explain.
 
-On focus distance I can only add a partial answer to yours. On my 28P (0.24 m and 0.75 m against far
-focus, f/4 to f/8) and my 35-100 (1.9 m against 5.7 m, 5.7 m against infinity), near and far focus gave
-the same correction to within about 0.01 stop out to the corners. One 28P pair first looked different,
-until I noticed one file carried BaselineExposure +0.76. You measured a focus effect on the 55V and 90V,
-and I have no raws from either, so this may simply be lens-specific.
+Phocus does change its correction with focus distance, as you found. The camera writes a focus code
+into byte 6 of the lens descriptor (0x0018): 0 at infinity, climbing as you focus closer. Four 55V raws
+at f/2.5 gave me three different vignetting maps, and lined up by that byte they made sense. Writing one
+file's code into another reproduces its map exactly. On the 55V, close focus darkens the centre by about
+a third of an L\* and pushes the correction out toward the edges; on my 28P the corner correction drops by
+up to 0.07 stop; the 35-100 barely moves. One warning if you test this yourself: EXIF SubjectDistance
+doesn't say where these lenses were focused. My clover close-up claims infinity and a distant tree claims
+0.30 m, and picking near and far frames by it is how I first convinced myself focus didn't matter.
 
 ### Where the lens data lives
 
@@ -140,7 +143,8 @@ every XCD lens.
 Because the correction is a fixed multiplier and the raw is uncompressed, the cleanest way to reproduce
 it in Capture One is to do it before Capture One sees the file. A script makes a synthetic flat with the
 lens state of a given raw, has Phocus render it through the hot folder, converts the measured gain
-through Capture One's response curve, and caches a map per lens, focal length and aperture (42 so far).
+through Capture One's response curve, and caches a map per lens, focal length, aperture and focus
+distance (52 so far).
 Another writes a corrected copy of each raw. The copy renders with a plain profile, no Light Falloff and
 no LCC:
 
@@ -154,7 +158,8 @@ Adding the lens-setting brightness to the maps took 14 of those frames from a me
 their lightness offsets falling from 0.33 to 0.12 L\*. The batch tool now also writes a Capture One
 settings file next to each copy, so it opens with the right profile and Light Falloff 0, and a lens I
 don't own can get its own profile from Phocus renders alone, because Capture One turns each synthetic
-patch into the same camera RGB whatever the lens.
+patch into the same camera RGB whatever the lens. My 38V got its profile that way, and nine frames from it
+land 0.35 to 0.53 from Phocus, flat to the corners.
 
 The error is flat from centre to corner. The cost is a full-size copy of every raw, and some highlight
 headroom in brightened corners. I tried buying that back by darkening the raw and raising
@@ -173,11 +178,10 @@ because it happens before the profile is applied.
 
 ## What I still don't know
 
-The focus question on the 55V and 90V is the obvious one. The only public raws I've found from either
-are from the original X2D, so X2D II files from those lenses, ideally at close focus, would let me test it
-the same way. I haven't found what `HighlightDesaturation` does, since it changed
-nothing in my tests. And I have exactly two GAIN records, mine and DPReview's -- if yours shows up as
-another pair of numbers in the same range, the formula gets its first independent test.
+I have no 90V raws, so I don't know how far its correction moves with focus. I haven't found what
+`HighlightDesaturation` does, since it changed nothing in my tests. And I have exactly two GAIN
+records, mine and DPReview's -- if yours shows up as another pair of numbers in the same range, the
+formula gets its first independent test.
 
-If any of this is useful for your DCP, or you have 55V or 90V raws at close focus, I'd love to compare
-notes.
+If any of this is useful for your DCP, or you have 90V raws at a few focus distances, I'd love to
+compare notes.

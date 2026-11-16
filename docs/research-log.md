@@ -550,6 +550,9 @@ left over:
 
 ### Finding 17: no focus-distance dependence on the 35-100, or on the 28P at f/5.6 and f/8
 
+*Superseded by Finding 31: the near/far pairs here were chosen by EXIF SubjectDistance, which doesn't
+record where these lenses were focused.*
+
 **In plain terms:** Changing where the lens was focused doesn't change Phocus's corrections for either
 lens, from the centre to the corners, with lens corrections on or off. The blog's focus effect was on the
 XCD 55V and 90V, which remain untested here.
@@ -994,8 +997,8 @@ stops at r 0.6 / 0.9, corrections off, and centre L\*:
 **In plain terms:** The two maker-note entries that identify the lens also carry the shot's aperture and
 focal length, which Phocus reads from there rather than from EXIF. Lens identities from original-X2D raws
 work on X2D II files, so Phocus's processing for lenses I don't own can be measured: the 55V and 38V each
-get their own colour shading and vignetting correction. None of the inputs Phocus reads vary with focus
-distance, so on these files its lens processing doesn't depend on focus.
+get their own colour shading and vignetting correction. (The focus conclusion below is wrong: Phocus
+reads focus from byte 6 of 0x0018, which these single raws couldn't show. See Finding 31.)
 
 - 0x0018 (17 bytes) describes the lens: byte 1 a type code (0x43 for the primes, 0x53 for the 35-100),
   bytes 2–3 its shortest and longest focal-length codes (28P 0x27/0x27, 35-100 0x2f/0x53, 55V 0x3e/0x3e,
@@ -1024,3 +1027,95 @@ distance, so on these files its lens processing doesn't depend on focus.
 - What this leaves of blog.tonalphoto.com's 55V/90V focus effect: it isn't driven by anything in these
   files. Two raws of the same lens at different focus distances, rendered in Phocus, would show whether it
   appears at all and where it comes from.
+
+### Finding 31: Phocus reads focus from byte 6 of 0x0018
+
+**In plain terms:** Phocus does change its lens correction with focus, and it reads where the lens was
+focused from one byte of the lens descriptor that changes from shot to shot. On the 55V at f/2.5, close
+focus makes the centre about a third of an L\* darker and moves the correction outward. On the 28P,
+close focus lowers the corner correction by up to 0.07 stop. On the 35-100 it barely matters. Findings 17
+and 30 missed it: Finding 17 picked its near and far frames by EXIF SubjectDistance, which on these files
+doesn't record where the lens was focused, and Finding 30 had one raw per lens. Pre-processing maps are
+now made per focus code.
+
+- Four original-X2D 55V raws at f/2.5 from one body, each as a synthetic flat (L\* 30, landscape),
+  gave three different maps. The only maker-note difference that groups them that way is byte 6 of
+  0x0018: 1 for the two distant scenes, 5 for a person and dog at about 1.5 m, 7 for a head-and-shoulders
+  portrait at about 1 m. Writing 7 into a code-1 flat reproduces the code-7 file's map exactly (centre
+  L\* 30.05; gains equal to 0.001 stop from r 0.4 to 0.9).
+- My own raws agree on what the byte means. 28P close-ups of clover and grass are codes 10 and 11, a
+  flower spray at about a metre is 8, distant trees and a canopy are 0 and 1. EXIF SubjectDistance
+  disagrees with the pictures (∞ for the clover close-up, 0.30 m for a distant tree), so Finding 17's
+  "0.75 m vs ∞" 28P pair at f/8 was two far-focus frames (codes 0 and 1), and its f/5.6 pair was codes 4
+  and 8.
+- Byte 6 swept on one flat per lens setting, lens corrections on (BaselineExposure 0); green gain in stops:
+
+| lens setting | focus code | centre L\* | r 0.2 | r 0.4 | r 0.6 | r 0.8 | r 0.9 | r 0.97 |
+|---|---|---|---|---|---|---|---|---|
+| 55V f/2.5 | 0 | 30.37 | +0.22 | +0.62 | +1.13 | +1.78 | +2.20 | +2.49 |
+| | 7 | 30.05 | +0.17 | +0.55 | +1.10 | +1.81 | +2.25 | +2.55 |
+| 28P f/4 | 0 | 30.74 | +0.21 | +0.69 | +1.36 | +2.19 | +2.59 | +2.83 |
+| | 11 | 30.78 | +0.22 | +0.68 | +1.34 | +2.15 | +2.56 | +2.80 |
+| | 15, 30 | 30.69 | +0.01 | +0.07 | +0.23 | +0.56 | +0.75 | +0.88 |
+| 28P f/8 | 0 | 30.45 | +0.11 | +0.50 | +1.05 | +1.81 | +2.26 | +2.55 |
+| | 11 | 30.45 | +0.11 | +0.47 | +1.00 | +1.74 | +2.22 | +2.53 |
+| 35-100 35 mm f/11 | 0 | 31.44 | +0.04 | +0.16 | +0.39 | +0.78 | +0.96 | +1.10 |
+| | 12 | 31.44 | +0.04 | +0.17 | +0.40 | +0.79 | +0.98 | +1.14 |
+| 35-100 100 mm f/8 | 0 | 31.11 | +0.01 | +0.05 | +0.11 | +0.22 | +0.26 | +0.38 |
+| | 12 | 31.11 | +0.01 | +0.05 | +0.12 | +0.24 | +0.28 | +0.30 |
+
+- Intermediate codes fall in between (28P f/4 at 2, 4, 8; 35-100 at 2, 5, 8). Colour shading (B−G) doesn't
+  change with focus on any lens.
+- Past the end of a lens's table Phocus drops to its no-lens processing: the 28P at codes 15 and 30
+  matches what an out-of-range focal length gives (Finding 30), with slightly more colour shading (B−G at
+  r 0.9 −0.21 instead of −0.18). My 28P raws go up to 11 and my 35-100 raws up to 5.
+- With corrections off the 55V changes too, less: code 1 vs 7 gives centre L\* 30.17 vs 30.04 and lift at
+  r 0.4 of +0.04 vs +0.07 stop.
+- Pre-processing: the map key is now lens, focal length, aperture and focus code
+  (`XCD28P_28mm_f4.0_d10`). A missing code falls back to the nearest code for the same lens setting.
+  `fit/preprocess_maps/` was rebuilt: 46 maps for the 39 lens settings in my raws.
+- Real frames, Capture One renders of copies made with the old and the focus-keyed maps, against Phocus
+  (whole frame, median ΔE00, lightness offset). Each old map had been made from whichever frame of that
+  lens setting came first, so only three of the 23 validation frames get a different map:
+
+| frame | focus code | old map's code | old | focus-keyed |
+|---|---|---|---|---|
+| B0000929, 28P f/4 | 0 | 10 | 0.51, −0.18 L\* (centre +0.1, r 0.6–0.8 −0.4) | **0.41, +0.05 L\*** (±0.1 throughout) |
+| B0000916, 28P f/16 | 4 | 0 | 0.66, +0.16 L\* | 0.67, +0.02 L\* |
+| B0000822, 35-100 100 mm f/11 | 0 | 5 | 0.25, +0.01 L\* | 0.26, −0.01 L\* |
+
+  The other 20 frames' maps differ from the old ones by at most 0.004 stop.
+- Correction to Findings 17 and 30: focus distance does change Phocus's lens processing on the 28P and
+  the 55V, through 0x0018 byte 6.
+
+### Finding 32: an E5 profile for the XCD 38V, from the owner's raws
+
+**In plain terms:** `auto_lens_profile.py` built an HNCS E5 profile for my 38V from nine of my raws, used
+only as templates for synthetic patches; Phocus did the rest. With pre-processing, those nine frames land
+0.35–0.53 ΔE00 from Phocus over the whole frame, flat from centre to corner, about 0.2 L\* darker
+throughout.
+
+- Raws: nine X2D II frames, ISO 50: an aperture series (f/2.5–f/8, focus code 4) of a leaf on timber at
+  about 1.5–2 m, and a house and dog at f/2.5 (code 1). Host B0001059 (f/2.5, code 4), which is also the
+  profile's reference lens state.
+- Synthetic fit residual median 1.46, p90 6.74 (the 28P's on the same test: 1.62 / 7.30, Finding 26).
+- Maps for the six lens states: green raw gain at r 0.9 +2.12 stops at f/2.5, +1.93 at f/2.8, +1.54 at
+  f/4, +1.34 at f/5.6, +1.25 at f/8. Codes 1 and 4 at f/2.5 differ by at most 0.01 stop.
+- Capture One renders of the pre-processed copies with "HNCS E5 38V (pre-processed)", against Phocus with
+  corrections on (whole frame, median ΔE00 / p90 / lightness offset):
+
+| frame | setting | median | p90 | dL\* |
+|---|---|---|---|---|
+| B0001059 | f/2.5 | 0.35 | 0.56 | −0.21 |
+| B0001060 | f/2.5 | 0.35 | 0.57 | −0.19 |
+| B0001066 | f/2.5 | 0.41 | 0.55 | −0.22 |
+| B0001065 | f/2.8 | 0.40 | 0.54 | −0.19 |
+| B0001064 | f/4 | 0.42 | 0.59 | −0.20 |
+| B0001061 | f/5.6 | 0.37 | 0.57 | −0.24 |
+| B0001063 | f/5.6 | 0.42 | 0.62 | −0.20 |
+| B0001062 | f/8 | 0.43 | 0.63 | −0.23 |
+| B0001067 | f/2.5, house | 0.53 | 0.93 | −0.20 |
+
+- The −0.2 L\* is the same on both scenes and at every aperture, so it belongs to the profile, not the
+  maps. It's within the ±0.2 L\* the other lenses leave per frame, but there it varies in sign; here it
+  doesn't. Eight of the nine frames are one scene, so this is a narrow test of colour.

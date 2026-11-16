@@ -21,7 +21,9 @@ Everything still open, in one place. Details for the numbered questions are belo
   hidden L\* variants with ProPhoto or XYZ primaries (Finding 20).
 - [x] Factory gains: a green and a blue gain; no lens dependence, slight white-balance dependence;
   the two combine; zero acts like ~2.1 (Finding 16).
-- [x] Focus distance on the 35-100, and the 28P at f/5.6 and f/8: none (Finding 17).
+- [x] Focus distance: Phocus reads a focus code from byte 6 of 0x0018. Close focus lowers the 28P's
+  corner correction by up to 0.07 stop and darkens the 55V's centre by 0.3 L\*; the 35-100 barely
+  changes. Maps are made per focus code (Finding 31).
 - [x] Highlight recovery: measured on synthetic clipping (Finding 23). Phocus keeps colour where one
   channel clips, and its Highlight Recovery rebuilds clipped channels; Capture One's slider only
   compresses.
@@ -29,11 +31,13 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [ ] Could the pre-processing step reconstruct clipped channels in the raw the way Phocus does? (It
   would need values above the white level, which a 3FR can't hold, so probably only as a darker
   rendering of the reconstructed range; not obviously possible.)
-- [ ] Focus distance on the XCD 55V and 90V, where blog.tonalphoto.com saw it. With one original-X2D raw
-  each from the 55V and 38V (DPReview), nothing Phocus reads from the file varies with focus (Finding 30).
-  Next: two raws of the same lens at different focus distances (near and far), rendered in Phocus.
-- [ ] 55V and 38V E5 profiles and maps for X2D II files, by borrowing their lens identity into an X2D II
-  host (Finding 30); `auto_lens_profile.py` would need an identity-donor option.
+- [x] Focus distance on the XCD 55V, where blog.tonalphoto.com saw it: measured from four f/2.5 raws at
+  different distances (Finding 31). No 90V raws; Phocus probably reads its focus the same way.
+- [x] 38V E5 profile and maps, from the owner's X2D II raws (Finding 32).
+- [ ] 55V E5 profile and maps for X2D II files, by borrowing its lens identity into an X2D II host
+  (Finding 30); `auto_lens_profile.py` would need an identity-donor option. Only worth it for a 55V owner.
+- [ ] The 38V profile renders about 0.2 L\* darker than Phocus on every frame (Finding 32). Worth checking
+  on more scenes; a lightness offset in the table would fix it if it holds.
 - [x] Question 4, per-frame lightness: mostly Phocus's per-lens-setting brightness, now in the maps
   (Finding 27). About ±0.2 L\* per frame remains.
 - [x] Question 5, shading mechanism: Phocus looks the lens up by a 34-byte identity in the raw and uses
@@ -50,8 +54,8 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Corrected copies open with the right settings: the batch tool writes Capture One sidecars
   (Finding 28).
 - [x] README contact sheet: pre-processed + E5 vs Phocus vs Capture One default.
-- [x] E5 profiles for other lenses, automatically (`tools/auto_lens_profile.py`, Finding 26). Untested
-  on a lens other than the two I own; worth checking on the first one.
+- [x] E5 profiles for other lenses, automatically (`tools/auto_lens_profile.py`, Finding 26). Checked on
+  the 38V: 0.35–0.53 ΔE00 with pre-processing (Finding 32).
 - [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`
   1 or 4, fitted like E5.
 
@@ -116,17 +120,18 @@ white-balance dependence would still be averaged unless profiles are chosen per 
 
 Some real frames are 0.5–1 L* darker in Capture One than in Phocus overall. It isn't BaselineExposure
 (both apps apply it), and it isn't the factory gains (colour, not lightness). Candidates:
-- the ~0.2 L* left in the maker-note entries that can't be swapped in place (newer focus-distance
-  fields 0x0081–0x0083);
-- (Focus distance is ruled out for the 28P: Finding 12.)
+- the ~0.2 L* left in the maker-note entries that can't be swapped in place (0x0081–0x0083 turned out
+  not to be focus fields: Finding 30);
+- focus distance, now in the maps (Finding 31).
 
 ## 5. Mechanism of Phocus's spatial colour shading
 
 Measured precisely, but its source isn't confirmed. The likely source is the per-lens "blue-corner
 shading" files in the camera firmware's lens database (reported by blog.tonalphoto.com). It is
 applied whether lens corrections are on or off, and the brightness lift it brings with corrections off
-is the "edge brightening" earlier versions removed by hand. No focus dependence on the 28P or the 35-100
-(Findings 12 and 17). The 28P shows slightly more colour at f/4 than at f/8 in the extreme corners.
+is the "edge brightening" earlier versions removed by hand. The shading doesn't change with focus; the
+vignetting correction and brightness do, a little (Finding 31). The 28P shows slightly more colour at f/4
+than at f/8 in the extreme corners.
 
 ## 6. Highlight recovery (measured: Finding 23)
 
@@ -164,9 +169,10 @@ recovery). Then compare on real frames with clipped skies or speculars.
   Validated on 32 raws from another body.
 - **What HNCS is made of.** A colour stage (matrix + 3D table, the matrix shifting with white balance),
   then one tone curve per channel in Hasselblad RGB; the response setting swaps the curve (Finding 14).
-- **Focus distance (28P, 35-100).** An apparent focus effect was BaselineExposure. With exposure
-  equalised, near and far focus give identical correction on both lenses, corners included (Findings 12
-  and 17).
+- **Focus distance.** Phocus reads a focus code from byte 6 of maker-note 0x0018 (0 at infinity). It
+  changes the vignetting correction and centre brightness, most on the 55V, up to 0.07 stop in the 28P's
+  corners, barely on the 35-100; colour shading doesn't change. EXIF SubjectDistance doesn't record where
+  these lenses were focused, which is why Finding 17 found nothing (Finding 31).
 - **"The two lenses render greys about 1 b* apart."** It's mostly Phocus's radial colour shading,
   which real-photo fits averaged over the frame. At the centre the only lens effect is 0.8 L* of
   brightness. E5 handles both: a per-lens table, and an LCC for the shading.

@@ -196,12 +196,14 @@ so it can be applied before Capture One sees the file.
    (0.17× at 1% of full scale, 0.64× at 10%, 0.75× above 60%; `fit/c1_response.npz`), so each gain is
    converted to the raw gain that produces it at the flat's level (`tools/make_preprocess_map.py`).
    Skipping this over-brightened the edges by 4–6 L\*.
-3. **Add the lens-setting brightness.** Phocus also scales overall brightness by lens, focal length and
-   aperture (Finding 27). The map keeps the flat's centre Lab; `preprocess_3fr.py` adds the gain between
+3. **Add the lens-setting brightness.** Phocus also scales overall brightness by lens, focal length,
+   aperture and focus distance (Findings 27 and 31). The map keeps the flat's centre Lab; `preprocess_3fr.py` adds the gain between
    it and the profile's reference setting (`fit/lens_references.json`).
 4. **Apply.** `tools/preprocess_3fr.py` multiplies every photosite by its interpolated gain in a copy;
    photosites already clipped in camera stay at white so Capture One still treats them as clipped.
-   Maps are cached by lens state (`fit/preprocess_maps/`); `tools/auto_maps.py` makes missing ones.
+   Maps are cached by lens state: lens, focal length, aperture and the focus code Phocus reads from
+   maker-note 0x0018 byte 6 (`fit/preprocess_maps/`, Finding 31); `tools/auto_maps.py` makes missing ones,
+   and a missing focus code falls back to the nearest one measured.
 5. **Open in Capture One.** `tools/preprocess_folder.py` also writes a minimal Capture One sidecar
    (`CaptureOne/Settings<version>/<name>.cos`: image UUID, `Version`, a `VAR` with `ProductID` and UUID,
    and the profile, Linear Response and Light Falloff 0). Capture One reads it the first time it sees the
@@ -252,8 +254,9 @@ channel. Synthetic copies must have BaselineExposure 0, because the lookup was m
 
 - **One camera model.** The profiles apply to the X2D II 100C; other bodies differ by their factory gains,
   which `tools/body_gains.py` corrects.
-- **Lenses.** Per-lens E5 profiles exist for the 28P and 35-100; `tools/auto_lens_profile.py` can build
-  more, untested so far on a lens other than those two. E4 covers any lens at lower accuracy.
+- **Lenses.** Per-lens E5 profiles exist for the 28P, 35-100 and 38V (the 38V's built by
+  `tools/auto_lens_profile.py` from Phocus renders alone); that tool builds more. E4 covers any lens at
+  lower accuracy.
 - **White balance.** The main profiles average 4700–6300 K; tungsten profiles cover about 3100–4200 K.
   Mixed light and the gap between the two are untested.
 - **Per-frame exposure.** Mostly explained by Phocus's per-lens-setting brightness, which pre-processing

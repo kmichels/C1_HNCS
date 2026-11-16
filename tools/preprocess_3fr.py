@@ -4,7 +4,8 @@ the per-body factory-gain normalisation. Render the copy with an "HNCS E5 … (p
 plain E5 profile, Light Falloff 0, no LCC. The original is only read.
 
 The map is a raw-gain map from make_preprocess_map.py for the same lens state (lens, focal length,
-aperture): either given with --map, or picked from a folder of maps with --maps. Each raw channel is
+aperture, focus code): either given with --map, or picked from a folder of maps with --maps (the nearest
+focus code for the same lens setting if that exact map hasn't been made). Each raw channel is
 multiplied by its gain, interpolated from the map's block centres to every photosite of the active area.
 Values that would exceed the white level are clipped and counted (brightening corners uses up
 highlight headroom there; with HNCS's tone curve those areas render near white anyway). Photosites
@@ -24,7 +25,7 @@ import tifffile
 from scipy.interpolate import RegularGridInterpolator
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from make_preprocess_map import FIT, global_gain, lens_state, profile_name, reference_state  # noqa: E402
+from make_preprocess_map import FIT, find_map, global_gain, lens_state, profile_name, reference_state  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("inp"); ap.add_argument("out")
@@ -44,8 +45,8 @@ if os.path.realpath(a.out) == os.path.realpath(a.inp):
 mp = a.map
 if a.maps:
     key = lens_state(a.inp)[0]
-    mp = os.path.join(a.maps, key + ".npz")
-    if not os.path.exists(mp):
+    mp = find_map(a.maps, key)
+    if mp is None:
         sys.exit(f"no map for {key} in {a.maps}: make one from this raw (see tools/README.md, pre-processing)")
 
 with tifffile.TiffFile(a.inp) as t:
@@ -72,8 +73,8 @@ if not a.no_lens_brightness:
     name = profile_name(lens_state(a.inp)[1])
     ref = reference_state(name)
     lut = next((p for p in (os.path.join(FIT, f"lut_e5_{name}.npz"), os.path.join(FIT, f"lut_e5_{name.lower()}.npz")) if os.path.exists(p)), None)
-    ref_path = os.path.join(os.path.dirname(mp), f"{ref}.npz") if ref else None
-    if ref_path and lut and os.path.exists(ref_path):
+    ref_path = find_map(os.path.dirname(mp), ref) if ref else None
+    if ref_path and lut:
         gg = global_gain(mp, ref_path, lut)
         gain = gain * gg
 print(f"lens-state brightness: x{gg:.4f} ({np.log2(gg):+.3f} stop)")

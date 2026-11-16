@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<SL Engine="1300">
+	<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />
+	<E K="ICCProfile" V="HasselbladX2DII100C-HNCS E5 38V.icm" />
+	<E K="LensLightFallOff" V="|0|1" />
+	<E K="Name" V="HNCS E5 38V (pre-processed)" />
+	<E K="StyleSource" V="Styles" />
+	<E K="UUID" V="1ECCE207-1BBF-4505-8372-AF30EFF59D6C" />
+</SL>

@@ -1,4 +1,4 @@
-"""Make pre-processing maps for every lens state (lens, focal length, aperture) among the given raws that
+"""Make pre-processing maps for every lens state (lens, focal length, aperture, focus code) among the given raws that
 fit/preprocess_maps (or --maps) doesn't have yet: a synthetic flat from one raw of each state, rendered by
 Phocus through its hot folder with lens corrections on, measured and converted to a raw-gain map.
 Phocus is restarted and its preferences restored afterwards; don't use it meanwhile. Raws are only read.
@@ -14,10 +14,14 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from make_preprocess_map import lens_state  # noqa: E402
+from make_preprocess_map import FIT, lens_state, profile_name  # noqa: E402
 from phocus_hotfolder import HotFolder, set_baseline_exposure, set_landscape  # noqa: E402
 
-LUTS = {"XCD28P": "lut_e5_28p.npz", "XCD35-100E": "lut_e5_35-100.npz"}
+
+def lens_lut(lens):
+    """The lens's E5 table if it has one, else E4 (only used to invert Phocus's render of a grey flat)."""
+    name = profile_name(lens)
+    return next((p for p in (os.path.join(FIT, f"lut_e5_{name}.npz"), os.path.join(FIT, f"lut_e5_{name.lower()}.npz")) if os.path.exists(p)), os.path.join(FIT, "lut_e4.npz"))
 
 
 ap = argparse.ArgumentParser()
@@ -45,7 +49,7 @@ try:
             set_landscape(flat)
             set_baseline_exposure(flat, 0.0)  # so centre brightness compares across lens states
             tif = hf.render(flat, name=f"flat_{key}.3fr", LensCorrection=4)
-            lut = os.path.join(HERE, "..", "fit", LUTS.get(lens.replace(" ", ""), "lut_e4.npz"))
+            lut = lens_lut(lens)
             fg = os.path.join(work, f"gain_{key}.npz")
             subprocess.run([py, "-I", os.path.join(HERE, "flat_gain.py"), lut, tif, fg], check=True, capture_output=True)
             out = subprocess.run([py, "-I", os.path.join(HERE, "make_preprocess_map.py"), fg, flat, a.maps], check=True, capture_output=True, text=True).stdout.strip()
