@@ -1121,3 +1121,105 @@ throughout.
   doesn't. Eight of the nine frames are one scene, so this is a narrow test of colour.
 - Contact sheet regenerated with the current maps and a 38V row: frame 939 0.54 → 0.43 (lens-setting
   brightness); the other five unchanged; 38V frame 1059 0.35 against Capture One's default 4.44.
+
+### Finding 33: bright colours, exposure pushes and white balance above 6500 K
+
+**In plain terms:** These are three checks prompted by blog.tonalphoto.com's Lightroom results. Pushing
+exposure in either app works exactly like giving the sensor more light, so a push adds no difference of
+its own. What a push (or a bright scene) does expose is a real gap. Once a saturated yellow, orange or
+yellow-green reaches about L\* 95 in Phocus, the profiles fade it toward grey while Phocus keeps it
+vivid. That fade almost certainly comes from a rule in `write_profile.py`, not from Capture One, so it
+can be changed. The daylight profiles match Phocus best near 5500 K. Colourful patches drift to about
+1.3 ΔE00 at 6500 K and 2.2 at 8000 K, but greys stay put, and three real shade frames scored 0.58–0.78.
+
+- Raws (`tools/round11/`): copies of the Finding 23 host (35-100 at 35 mm f/11; Capture One reads its
+  As Shot as 5451 K).
+  - Ladder: grey plus 12 hues (HSV in white-balanced camera RGB: 0 red, 60 yellow, 120 green, 180
+    cyan, 240 blue, 300 magenta) at saturation 0.3, 0.6 and 0.9. Each is placed at 23 levels of its
+    brightest raw channel: 1/16 to 1.0 of the white level in quarter stops, plus 0.76–0.99.
+  - White-balance grids: `--levels 9` at As Shot neutrals for 4200–8000 K, computed from ColorMatrix1
+    on the daylight locus. Capture One reads them as 4169–8227 K.
+- Phocus rendered through the hot folder at its defaults, and with the sidecar's `EV` at 2.0 and 4.0.
+  `EV` is a linear gain applied before the tone curve. EV 2.0 renders a grey exactly as twice the raw
+  level does, and 4.0 as four times (+1 and +2 stops).
+- Capture One rendered with HNCS E5 35-100, Linear Response, Light Falloff 0, and exposure 0, +1 and +2.
+- Script: `tools/round11/analyze.py`; log `data/logs/r11_synthetic.txt`.
+
+**Bright colours** (EV 0; median ΔE00 over saturation 0.6 and 0.9, by the brightest raw channel's level):
+
+| hue | ≤ 0.50 | 0.59–0.84 | 0.88–0.99 | what happens |
+|---|---|---|---|---|
+| 0 red | 0.58 | 7.92 | 6.45 | Phocus fades to white sooner |
+| 30 orange | 0.33 | 16.42 | 22.07 | Capture One fades to grey |
+| 60 yellow | 0.29 | 21.77 | 25.47 | Capture One fades to grey |
+| 90 yellow-green | 0.31 | 6.54 | 18.68 | Capture One fades to grey |
+| 120 green | 0.47 | 4.17 | 4.69 | Capture One −24 C\* |
+| 150 | 0.32 | 1.80 | 1.83 | |
+| 180 cyan | 0.43 | 0.36 | 0.70 | matches |
+| 210 | 0.31 | 2.42 | 4.03 | |
+| 240 blue | 5.11 | 13.71 | 16.58 | Phocus renders saturation 0.9 black (below) |
+| 270 | 0.50 | 2.40 | 2.82 | |
+| 300 magenta | 0.45 | 4.02 | 6.71 | Capture One about −10 C\* at saturation 0.9 |
+| 330 pink | 0.49 | 7.20 | 5.68 | Phocus fades to white sooner |
+
+- **Yellows, oranges and yellow-greens.** Green is their brightest raw channel. Phocus keeps them
+  saturated right up to white. Yellow at saturation 0.9 sits at L\* 98, C\* 120–121 from level 0.71 to 1.0.
+  Capture One with HNCS gives C\* 17 at 0.71 and 4 at 1.0. The loss starts where Phocus's L\* passes 95.
+  At saturation 0.6, Phocus gives L\* 95 / C\* 60 at level 0.59, where Capture One gives C\* 44; at L\*
+  98 the two are 55 against 8. That's where `write_profile.finalize` starts fading chroma to zero (table
+  L\* 95 to 105, "beyond Phocus white"). The rule assumes L\* above 95 is near white, but Phocus's
+  saturated yellows live there. It's very likely the cause; a rebuilt profile would confirm it.
+- **Reds and pinks.** Their red channel passes white after white balance well before the sensor clips,
+  because the red neutral is 0.37. Phocus fades them to white by about level 0.6–0.7. Pink at saturation
+  0.6 gives C\* 41, 12 and 0 at levels 0.50, 0.59 and 0.71; Capture One gives 58, 47 and 4. This is the
+  apps' own handling, before the profile.
+- **Very saturated magenta and blue** (saturation 0.9, LED-like). From level 0.25 up, magenta has
+  10–22 C\* less in Capture One: Phocus C\* 114–128 against 104–112. That fits the profiles' soft chroma
+  compression above C\* 90. Phocus renders the saturation-0.9 blue (camera RGB about 0.1, 0.1, 1) as
+  black at every level below 1.0 (L\* 0); Capture One renders it dark blue (L\* 1–7). It's outside the
+  range HNCS handles, so it isn't a useful comparison. Blue at saturation 0.6 matches up to level 0.92.
+- Greys stay within 1.0 ΔE00 at every level, with L\* within 0.3. Cyan matches at every level (0.36–0.70).
+  blog.tonalphoto.com's worst Lightroom colours near clipping were cyan (12.6) and magenta (10.7).
+
+**Exposure pushes.** These compare patches whose pushed level stays at or below 0.84:
+
+| | Phocus vs Capture One, pushed | same colours unpushed at 2× / 4× the level | push vs more light, within each app (Phocus / Capture One) | dC\* (Capture One − Phocus) |
+|---|---|---|---|---|
+| +1 EV | 0.49 (p90 7.12) | 0.44 | 0.10 / 0.02 | −0.35 |
+| +2 EV | 0.88 (p90 9.81) | 0.57 | 0.10 / 0.02 | −1.02 |
+
+- In both apps, a push renders a patch the same as more light would. In Capture One, exposure acts before
+  the profile, as BaselineExposure does.
+- The difference between the apps is the bright-colour gap above, reached sooner. At saturation 0.9, a +2
+  EV push costs 11.9 C\*. At saturation 0.3 and 0.6 it's 0.30 and 0.52 ΔE00.
+- blog.tonalphoto.com's 1 C\* Lightroom gap on pushed frames is the same size as the +2 EV median here.
+  Whether it has the same cause in Lightroom is unknown.
+
+**White balance** (median ΔE00 on patches whose brightest raw channel is below 0.5, by Phocus chroma):
+
+| As Shot | C\* 20–40 | C\* 40–60 | all | greys Δb\* |
+|---|---|---|---|---|
+| 4200 K | 1.67 | 2.47 | 3.04 | +0.23 |
+| 4500 K | 1.28 | 1.98 | 2.47 | +0.24 |
+| 5000 K | 0.67 | 0.90 | 1.45 | +0.28 |
+| 5500 K | 0.52 | 0.48 | 0.95 | +0.30 |
+| 6000 K | 0.90 | 0.93 | 1.33 | +0.32 |
+| 6500 K | 1.26 | 1.29 | 1.69 | +0.34 |
+| 7000 K | 1.52 | 1.54 | 2.21 | +0.39 |
+| 7500 K | 1.87 | 1.85 | 2.85 | +0.40 |
+| 8000 K | 2.12 | 2.35 | 3.48 | +0.41 |
+
+("all" is dominated by the grid's very saturated corners.)
+
+- Greys hold at every white balance: within 0.5 ΔE00, b\* +0.2 to +0.4. Colours drift either side of
+  5500 K. Phocus's colour changes with white balance beyond what Capture One's white balance does
+  (Finding 14), and one profile can follow it only near the middle of its fitting range. The daylight
+  profiles don't hold down to 4500 K, so the 4200–4700 K gap in question 2 stays.
+- Real frames, scored like Finding 24 (pre-processed + E5 vs Phocus with corrections on, whole frame):
+  - B0000840 (Capture One As Shot 6500 K): 0.58
+  - B0000688 (6802 K, ISO 400): 0.63
+  - B0000686 (7606 K, ISO 800): 0.78, dL\* +0.35
+
+  Finding 24's 16 35-100 frames, at about 4500–6600 K (estimated from ColorMatrix1), scored 0.26–0.61
+  with no trend by temperature (correlation 0.05). Real scenes are mostly low in chroma, so the drift
+  shows much less there. Three frames is a small sample. Log: `data/logs/r11_real.txt`.

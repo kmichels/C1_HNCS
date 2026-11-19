@@ -92,12 +92,16 @@ profiles), use **As Shot** white balance, and edit as usual afterwards.
   YOUR_RAW.3fr` prints the correction for another body (pre-processing can apply it: `--body-gains`).
 - **White balance.** Phocus's colour shifts with white balance. Use the tungsten profiles for tungsten
   light (1.0–1.7 ΔE00 on real tungsten photos, against 2.0–2.8 with the daylight ones); mixed light is
-  untested.
+  untested. In shade and overcast light (about 6500–8000 K) the daylight profiles drift too: colourful
+  synthetic patches reach about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K, and three real shade photos scored
+  0.58–0.78.
 - **Profile-only routes.** Without pre-processing, the 28P's corners at f/5.6 and narrower stay darker
   than Phocus, and Phocus's per-lens-setting brightness (up to about ±0.5 L\* on the 35-100 between 45
   and 75 mm) isn't included. About ±0.2 L\* per frame remains unexplained in every route.
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
-  rebuild the clipped channel; Capture One can't, and no profile can change that.
+  rebuild the clipped channel; Capture One can't, and no profile can change that. Separately, very bright
+  saturated yellows and oranges (Phocus L\* above about 95) come out much paler with these profiles. That
+  comes from how the profiles are written, and it can be fixed.
 - **Phocus defaults only.** The match is to Phocus's Standard response in its default working space.
 
 More in [docs/open-questions.md](docs/open-questions.md).

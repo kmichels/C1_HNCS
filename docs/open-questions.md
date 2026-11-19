@@ -58,10 +58,29 @@ Everything still open, in one place. Details for the numbered questions are belo
   the 38V: 0.35–0.53 ΔE00 with pre-processing (Finding 32).
 - [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`
   1 or 4, fitted like E5.
+- [ ] Keep bright yellows and oranges saturated (Finding 33). `write_profile.finalize` fades chroma to
+  zero between table L\* 95 and 105, but Phocus keeps saturated yellows at L\* 98 and C\* 120. Rebuild
+  E5 with the fade moved higher, or keyed to camera-RGB brightness instead of L\*. Then check the round-11
+  ladder (`tools/round11/`) and the Finding 24 frames for regressions near white.
+- [ ] Shade profiles, like the tungsten ones: E5 fitted on 7000–8000 K grids ("HNCS E5 … Shade"). Worth
+  it if shade frames matter; synthetic colours drift to about 2 ΔE00 at 8000 K (Finding 33).
 
 **Validation and writing**
 - [x] Check on photos not used in fitting: 23 frames (Finding 24). Still worth a look: new photos in
   varied light, especially tungsten and mixed light.
+- [x] Exposure pushes (Finding 33). In both apps, a push renders the same as more light on the sensor
+  (within 0.10 ΔE00), so a push adds no difference of its own. Pushed patches differ between the apps
+  only where the push makes saturated colours bright (next item): +2 EV costs 11.9 C\* at saturation
+  0.9, against 0.30–0.52 ΔE00 at saturation 0.3–0.6. Not yet checked on real pushed frames.
+- [x] Bright saturated colours near clipping (Finding 33). Cyan matches at every level. Yellows, oranges
+  and yellow-greens fade to grey in Capture One once Phocus's L\* passes 95 (16–25 ΔE00 at level 0.59 and
+  up). Reds and pinks go white sooner in Phocus. Magenta at saturation 0.9 has about 10–22 C\* less.
+- [x] White balance above 6500 K (Finding 33). Greys hold everywhere. Colours (C\* 20–60) are best at
+  5500 K (0.5) and drift to 1.3 at 6500 K and 2.1–2.4 at 8000 K. Three real shade frames scored 0.58–0.78,
+  against 0.26–0.61 for Finding 24's frames. The daylight profiles don't hold down to 4500 K (1.3–2.0).
+- [ ] Phocus 4.2.3. Everything here was fitted and checked on Phocus 4.2.2; blog.tonalphoto.com's latest
+  numbers are on 4.2.3. After updating, re-render a few synthetic grids and flats to see whether HNCS or
+  the lens processing changed.
 - [x] Write up the findings for blog.tonalphoto.com's author: [writeup.md](writeup.md).
 
 ## 1. XCD 28P edge brightness at f/5.6 and narrower
@@ -85,7 +104,9 @@ shift is.
 
 Phocus's colour depends on white balance. E5 averages over about 4700–6300 K. Tungsten-lit frames
 rendered at their As Shot white balance (about 3400 K) are 1.6–2.1 ΔE00 off with E5, and 1.0–1.7 with
-the E5 Tungsten profiles (Finding 21). Open: the 28P tungsten profile on real frames; mixed light and
+the E5 Tungsten profiles (Finding 21). Above about 6000 K the daylight profiles drift as well: about 1.3
+ΔE00 on colourful patches at 6500 K and 2.2 at 8000 K (Finding 33). Open: the 28P tungsten profile on
+real frames; a shade profile; mixed light and
 the range between the daylight and tungsten profiles (about 4200–4700 K).
 
 The notes below are how it was built.
