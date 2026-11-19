@@ -1283,3 +1283,52 @@ names.
 - **Not checked:** whole real photos rendered in Capture One. The held-out real pairs, scored offline at
   the frame centre, didn't change.
 - Logs: `data/logs/r12_fade_35100.txt`, `r12_fade_28p.txt`, `r12_fade_38v.txt`, `r12_c1_ladder.txt`.
+
+### Finding 35: five more lenses and a third body, from blog.tonalphoto.com's raws
+
+**In plain terms:** blog.tonalphoto.com's author shared one X2D II raw for each of five lenses I don't
+own: the 25V, 55V, 90V, 120 Macro and 135, all from one body. Each became an HNCS E5 profile, built for
+my body. Their camera's factory calibration is further from mine than any seen before, and Phocus
+treats it exactly as the formula predicts. On their own photos the result is 0.16–0.51 ΔE00 from Phocus
+over the whole frame once the body correction is applied, against 1.33–1.98 without it. That's the
+third body, and the first test of the body correction on real photos from many lenses.
+
+- Raws: B0041052 (25V f/9), B0039850 (55V f/6.3), B0038945 (90V f/6.3), B_23969 (XCD 120 Macro f/8,
+  focus code 5), B0040287 (135 f/6.3). ISO 50–200, all at As Shot 5463 K by Capture One. Kept locally in
+  `data/tonal/`; not redistributed.
+- **Their body's GAIN record:** 2.049, 2.250. Mine is 2.600, 2.260 and DPReview's 2.363, 2.518.
+  `body_gains.py` predicts camera RGB × (1, 0.9818, 0.9997), a green change almost three times
+  DPReview's.
+- **Synthetic check (`tools/round13/body_test.py`).** Phocus rendered the round-11 ladder with my record
+  and with theirs (0x0019 swapped in, nothing else changed). The two renders differ by a median 0.75 ΔE00:
+  greys move a\* +1.37, b\* −0.92. The formula, put through the E5 35-100 table, predicts +1.41, −0.95.
+  Their-record render against my render shifted by the prediction: median 0.07 ΔE00 (p90 0.18). The
+  formula holds well outside the range it was fitted on.
+- **Profiles for my body.** Each raw got a copy with my GAIN record swapped in (`makernote_transplant.py
+  … 0x0019`). That copy was the host for `auto_lens_profile.py --install`, which uses only metadata.
+  The results are HNCS E5 XCD25V, XCD55V, XCD90V, XCD120 and XCD135, plus maps for each lens setting
+  (made the same way).
+- **Real frames.** Each original went through `preprocess_3fr.py`, with and without `--body-gains`, and
+  was rendered in Capture One with its lens's profile. Scored against Phocus with corrections on, whole
+  frame, median ΔE00 and lightness offset:
+
+| frame | lens | without body gains | with body gains |
+|---|---|---|---|
+| B0041052 | 25V f/9 | 1.98, +0.51 L\* | **0.47**, +0.07 L\* |
+| B0039850 | 55V f/6.3 | 1.79, +0.64 L\* | **0.51**, +0.23 L\* |
+| B0038945 | 90V f/6.3 | 1.78, +0.45 L\* | **0.26**, −0.01 L\* |
+| B_23969 | 120 Macro f/8 | 1.33, +0.45 L\* | **0.16**, −0.04 L\* |
+| B0040287 | 135 f/6.3 | 1.80, +0.37 L\* | **0.18**, −0.02 L\* |
+
+- Corners match centres: with body gains, the band from r 0.8 to 0.95 scores 0.13–0.66.
+- Without the correction there's also a +0.4 to +0.6 L\* lightness error. The green gain moves lightness
+  as well as colour.
+- **What this doesn't cover.** Each profile's host was the frame being scored, so each lens was tested at
+  its reference setting only; only the metadata was used, never the pixels. Other apertures, focal
+  lengths and focus distances need their own maps, and `preprocess_folder.py --make-maps` makes them from
+  any raw.
+- `body_gains.py` and `preprocess_3fr.py --body-gains` had been broken since Round 10 (`16a001b`). They
+  borrowed code from `makernote_transplant.py` by splitting its source text, and that file was
+  restructured in Round 10. Both now import it normally.
+- Logs: `data/logs/r13_body_test.txt`, `r13_tonal_scores.txt`, `tonal_phocus.txt`; scores in
+  `data/val/r13/`.

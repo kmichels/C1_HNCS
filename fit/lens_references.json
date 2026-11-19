@@ -1,5 +1,10 @@
 {
   "28P": "XCD28P_28mm_f8.0_d0",
   "35-100": "XCD35-100E_35mm_f11.0_d0",
-  "38V": "XCD38V_38mm_f2.5_d4"
+  "38V": "XCD38V_38mm_f2.5_d4",
+  "XCD90V": "XCD90V_90mm_f6.3_d0",
+  "XCD55V": "XCD55V_55mm_f6.3_d0",
+  "XCD135": "XCD135_135mm_f6.3_d0",
+  "XCD25V": "XCD25V_25mm_f9.0_d0",
+  "XCD120": "XCD120_120mm_f8.0_d5"
 }

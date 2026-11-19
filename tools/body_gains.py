@@ -16,18 +16,18 @@ usage: python body_gains.py YOUR_RAW.3fr [--ref 2.600,2.260]
 """
 import argparse
 import os
+import sys
 
 import numpy as np
 
-src = open(os.path.join(os.path.dirname(__file__), "makernote_transplant.py")).read().split("ap = argparse")[0]
-ns = {}
-exec(src, ns)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from makernote_transplant import entries  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("raw")
 ap.add_argument("--ref", default="2.600,2.260")
 a = ap.parse_args()
-rec = ns["entries"](a.raw)[0x0019]["raw"]
+rec = entries(a.raw)[0x0019]["raw"]
 assert rec[:4] == b"GAIN", "maker-note 0x0019 is not a GAIN record"
 g1, g2 = (round(float(v), 3) for v in np.frombuffer(rec[84:88], "<f2"))
 r1, r2 = (float(v) for v in a.ref.split(","))

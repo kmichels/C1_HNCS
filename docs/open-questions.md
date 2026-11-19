@@ -32,10 +32,12 @@ Everything still open, in one place. Details for the numbered questions are belo
   would need values above the white level, which a 3FR can't hold, so probably only as a darker
   rendering of the reconstructed range; not obviously possible.)
 - [x] Focus distance on the XCD 55V, where blog.tonalphoto.com saw it: measured from four f/2.5 raws at
-  different distances (Finding 31). No 90V raws; Phocus probably reads its focus the same way.
+  different distances (Finding 31).
+- [ ] 90V focus: a 90V raw is now available (`data/tonal/B0038945`). Sweep byte 6 of 0x0018 on a synthetic
+  flat, as Finding 31 did for the other lenses. blog.tonalphoto.com saw a focus effect on the 90V.
 - [x] 38V E5 profile and maps, from the owner's X2D II raws (Finding 32).
-- [ ] 55V E5 profile and maps for X2D II files, by borrowing its lens identity into an X2D II host
-  (Finding 30); `auto_lens_profile.py` would need an identity-donor option. Only worth it for a 55V owner.
+- [x] 25V, 55V, 90V, 120 Macro and 135 E5 profiles, from blog.tonalphoto.com's X2D II raws (Finding 35).
+  Each was tested at one lens setting only.
 - [ ] The 38V profile renders about 0.2 L\* darker than Phocus on every frame (Finding 32). Worth checking
   on more scenes; a lightness offset in the table would fix it if it holds.
 - [x] Question 4, per-frame lightness: mostly Phocus's per-lens-setting brightness, now in the maps
@@ -191,7 +193,8 @@ recovery). Then compare on real frames with clipped skies or speculars.
 
 - **Other bodies.** The two factory gains are a green and a blue gain on camera RGB (Findings 13 and 16).
   `tools/body_gains.py` reads any raw's record and prints the profile input gain for that body.
-  Validated on 32 raws from another body.
+  Validated on 32 raws from a second body, and on a third body whose green gain sits well outside both
+  (Finding 35). There the correction takes five real frames from 1.33–1.98 to 0.16–0.51 ΔE00.
 - **What HNCS is made of.** A colour stage (matrix + 3D table, the matrix shifting with white balance),
   then one tone curve per channel in Hasselblad RGB; the response setting swaps the curve (Finding 14).
 - **Focus distance.** Phocus reads a focus code from byte 6 of maker-note 0x0018 (0 at infinity). It

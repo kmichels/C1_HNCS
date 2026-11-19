@@ -83,10 +83,9 @@ xs = cx0 + (np.arange(nbx) + 0.5) * b * scale
 
 k = np.ones(3)
 if a.body_gains:
-    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "makernote_transplant.py")).read().split("ap = argparse")[0]
-    ns = {}
-    exec(src, ns)
-    rec = ns["entries"](a.inp)[0x0019]["raw"]
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from makernote_transplant import entries
+    rec = entries(a.inp)[0x0019]["raw"]
     g1, g2 = (round(float(v), 3) for v in np.frombuffer(rec[84:88], "<f2"))
     r1, r2 = (float(v) for v in a.ref.split(","))
     g1, g2 = (v if v > 0 else 2.1 for v in (g1, g2))

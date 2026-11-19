@@ -21,7 +21,7 @@ This is a personal project. It's not affiliated with Hasselblad or Capture One.
 | What | a corrected copy of each raw, rendered with a per-lens profile | a per-lens profile plus a colour LCC per lens |
 | Whole frame vs Phocus with corrections on, 23 unseen photos (28P / 35-100) | **0.65 / 0.49** | 1.38 / 0.64 |
 | Needs | Python, and Phocus for lens settings not yet measured | an LCC reference per lens |
-| Lenses | 28P, 35-100 and 38V built in; others built automatically from your raws | 28P and 35-100 |
+| Lenses | 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135 built in; others built automatically from your raws | 28P and 35-100 |
 
 Each E5 profile is made for one lens. For another lens, `preprocess_folder.py --make-profiles` (or
 `tools/auto_lens_profile.py`) builds one from your raws with Phocus.
@@ -51,11 +51,12 @@ Tested with Capture One 16.9 and Phocus 4.2.2 on macOS.
 ```
 
 - Writes a corrected copy of every raw into `Corrected` (same file names). Import or browse that folder.
-- Each copy gets a Capture One settings file, so it opens with the right profile (**HNCS E5 28P**,
-  **HNCS E5 35-100** or **HNCS E5 38V**), Linear Response and Light Falloff 0. For files Capture One
-  has seen before, apply the **HNCS E5 … (pre-processed)** style instead.
+- Each copy gets a Capture One settings file, so it opens with its lens's profile (**HNCS E5 28P**,
+  **HNCS E5 XCD90V** and so on), Linear Response and Light Falloff 0. For files Capture One has seen
+  before, apply the **HNCS E5 … (pre-processed)** style instead.
+- If your camera isn't the one the profiles were made on, add `--body-gains`.
 - `--make-maps` measures any combination of lens, focal length, aperture and focus distance it hasn't
-  seen (`fit/preprocess_maps/` has 52 for the 28P, 35-100 and 38V; without `--make-maps` a missing focus
+  seen (`fit/preprocess_maps/` has 57 across the eight lenses; without `--make-maps` a missing focus
   distance uses the nearest one measured). `--make-profiles` builds an E5 profile and
   styles for any other lens, from Phocus renders alone, and installs them (restart Capture One). Both run
   Phocus unattended, so don't use it meanwhile.
@@ -86,8 +87,9 @@ profiles), use **As Shot** white balance, and edit as usual afterwards.
 ## Known limits
 
 - **One camera model.** Each X2D II carries a factory calibration record that Phocus uses to normalise
-  the body and Capture One ignores; the profiles match the body they were made on. `tools/body_gains.py
-  YOUR_RAW.3fr` prints the correction for another body (pre-processing can apply it: `--body-gains`).
+  the body and Capture One ignores; the profiles match the body they were made on. For another body,
+  pre-process with `--body-gains` (`tools/body_gains.py YOUR_RAW.3fr` prints the correction). On a third
+  body's photos, the correction took the whole-frame error from 1.3–2.0 to 0.16–0.51 ΔE00.
 - **White balance.** Phocus's colour shifts with white balance. Use the tungsten profiles for tungsten
   light (1.0–1.7 ΔE00 on real tungsten photos, against 2.0–2.8 with the daylight ones); mixed light is
   untested. In shade and overcast light (about 6500–8000 K) the daylight profiles drift too: colourful
@@ -127,7 +129,7 @@ The step-by-step notes are in [docs/research-log.md](docs/research-log.md); the 
 ## Repository layout
 
 ```
-profiles/   HNCS E5 28P / 35-100 / 38V (plain, for pre-processed raws); E5 … LCC and LCC Tungsten
+profiles/   HNCS E5 28P / 35-100 / 38V / XCD25V / XCD55V / XCD90V / XCD120 / XCD135 (plain, for pre-processed raws); E5 … LCC and LCC Tungsten
 styles/     "(pre-processed)", plain and "+ Light Falloff 120" styles for each profile
 fit/        lut_e5_*.npz                        fitted 33³ tables before ICC encoding
             lut_e4.npz    the earlier real-photo table, still used to read Phocus's grey flats for new lenses
