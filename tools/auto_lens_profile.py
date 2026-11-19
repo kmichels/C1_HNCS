@@ -11,11 +11,12 @@ The synthetic copies carry the reference body's factory gains, so the profile se
 
 Phocus is restarted and its preferences restored afterwards; don't use it meanwhile. Raws are only read.
 
-With --light shade it builds "HNCS E5 <name> Shade" instead, fitted on grids at 6300-8600 K (Finding 44), and
+With --light shade it builds "HNCS E5 <name> Shade" instead, fitted on grids at 6300-8600 K (Finding 44); with
+--light warm, "HNCS E5 <name> Warm" on grids at 4200-5000 K (Finding 51); and
 with --light tungsten "HNCS E5 <name> Tungsten", on Finding 21's four grids at about 3100-4200 K (Finding 46).
 c1_sidecars.py picks them for photos whose As Shot is in shade or under tungsten light.
 
-usage: python auto_lens_profile.py RAW [RAW ...] [--name NAME] [--out DIR] [--install] [--light daylight|shade|tungsten]
+usage: python auto_lens_profile.py RAW [RAW ...] [--name NAME] [--out DIR] [--install] [--light daylight|shade|warm|tungsten]
   NAME defaults to the lens model (e.g. XCD55V); files go to DIR (default: the repo's profiles/ and fit/);
   --install also copies the profile into ~/Library/ColorSync/Profiles (restart Capture One).
 """
@@ -37,16 +38,16 @@ from phocus_hotfolder import HotFolder, set_baseline_exposure, set_landscape, se
 
 WB_GRIDS = ["HNCSwbA1", "HNCSwbA2", "HNCSwbA3", "HNCSwbA4", "HNCSwbA5"]  # their As Shot neutrals are reused
 # Kelvins on the daylight locus, offset like real X2D II As Shot neutrals: (33-level grid, 22-level grids)
-LIGHTS = {"shade": (7300, (6300, 6800, 7900, 8600))}
+LIGHTS = {"shade": (7300, (6300, 6800, 7900, 8600), (-0.055, -0.06)),
+          "warm": (4600, (4200, 4400, 4800, 5000), (-0.02, -0.04))}   # off-locus offsets of real photos there
 TUNGSTEN_GRIDS = ["HNCStungA1", "HNCStungA2", "HNCStungA3", "HNCStungA4"]  # Finding 21's neutrals, 22-level grids only
-OFF_LOCUS = (-0.055, -0.06)
 
 ap = argparse.ArgumentParser()
 ap.add_argument("raws", nargs="+")
 ap.add_argument("--name", default=None)
 ap.add_argument("--out", default=None, help="write everything into this folder instead of the repo")
 ap.add_argument("--install", action="store_true")
-ap.add_argument("--light", choices=("daylight", "shade", "tungsten"), default="daylight")
+ap.add_argument("--light", choices=("daylight", "shade", "warm", "tungsten"), default="daylight")
 a = ap.parse_args()
 
 
@@ -83,11 +84,11 @@ try:
             grids.append((n[-2:], neutral_arg(np.load(os.path.join(REPO, "fit", "synthetic", "pairs", n + ".npz"))["neutral"])))
     else:
         from c1_sidecars import daylight_neutral
-        main_k, wb_ks = LIGHTS[a.light]
+        main_k, wb_ks, off = LIGHTS[a.light]
         for i in range(3):
-            grids.append((f"g{i}", ["--levels", "33", "--part", f"{i}/3", *neutral_arg(daylight_neutral(host, main_k, OFF_LOCUS))]))
+            grids.append((f"g{i}", ["--levels", "33", "--part", f"{i}/3", *neutral_arg(daylight_neutral(host, main_k, off))]))
         for k in wb_ks:
-            grids.append((f"k{k}", neutral_arg(daylight_neutral(host, k, OFF_LOCUS))))
+            grids.append((f"k{k}", neutral_arg(daylight_neutral(host, k, off))))
     for tag, extra in grids:
         run(os.path.join(HERE, "make_synthetic_raw.py"), host, os.path.join(work, f"{tag}.3fr"), "--uid", f"HNCSLENS{tag}".ljust(16, "0")[:16], *extra)
         set_landscape(os.path.join(work, f"{tag}.3fr"))

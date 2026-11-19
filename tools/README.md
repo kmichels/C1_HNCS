@@ -42,7 +42,7 @@ flowchart TD
 |---|---|
 | `prepare_folder.py FOLDER [--make-maps] [--make-profiles] [--make-lccs] [--lab DIR] [--force]` | Everything below for a folder of raws, then a settings file per raw |
 | `auto_maps.py RAW… [--maps DIR]` | Phocus's lens correction map for every lens setting among the raws that doesn't have one (Phocus, about 25 s each) |
-| `auto_lens_profile.py RAW… [--name N] [--install] [--light shade\|tungsten]` | A colour profile for a lens from any of its raws, using only Phocus (about 5 minutes); `--light` makes its shade or tungsten version |
+| `auto_lens_profile.py RAW… [--name N] [--install] [--light tungsten\|warm\|shade]` | A colour profile for a lens from any of its raws, using only Phocus (about 5 minutes); `--light` makes its tungsten, warm or shade version |
 | `bake_lcc_colour.py [--lens NAME…] [--install] [--body RAW\|reference]` | Builds each lens's LCC colour factor (and any brightness correction) into all its profiles and records it in `fit/lcc_colour.json`; `--body` installs profiles with your camera's factory-gain correction built in |
 | `state_lcc.py ensure RAW…` | An LCC for every lens setting among the raws that doesn't have one, made and calibrated in Capture One (about 1.5 minutes each) |
 | `state_lcc.py make HOST MAP` / `calibrate HOST MAP` | The two halves of `ensure`, for one map |

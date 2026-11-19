@@ -1976,3 +1976,63 @@ adjustments**, which was already on in a new catalog.
   setting them through a variable fails with "Invalid key form" (−10002), as does addressing a document by
   name.
 - Logs: `data/logs/r25_catalog_settings.txt`, `r25_catalog_scores.txt`.
+
+### Finding 51: warm profiles fill the gap between tungsten and daylight
+
+**In plain terms:** Between about 4000 and 4850 K (early morning, late afternoon, warm indoor light) neither
+the tungsten nor the daylight profile fitted Phocus well. A fourth profile per lens, fitted on grids at
+4200–5000 K, roughly halves the error there on synthetic grids for every lens, and beats the daylight
+profile on all ten real photos up to 4829 K (one ties) (for example 0.74 → 0.31 and 0.77 → 0.28 on two 28P photos).
+Settings files pick it automatically. With all four profiles picked this way, the 28 validation photos
+average 0.444 ΔE00, better than pre-processing's 0.464, which only had daylight profiles.
+
+- **`auto_lens_profile.py --light warm`**: a 33-level grid at 4600 K and 22-level grids at 4200, 4400, 4800
+  and 5000 K, on the ColorMatrix1 daylight locus offset by (−0.02, −0.04) in log red and blue, where the
+  owner's photos in that range sit (they average about −0.025 and −0.047 from 4200 to 5000 K, closer to
+  the locus than in shade). Built for all eight lenses from their daylight hosts; synthetic fit residual
+  median 0.48, p90 2.1.
+- **Synthetic grids not used in any fit**, 35-100, median ΔE00 C\* 20–40 | C\* 40–60:
+
+| grid | tungsten | warm | daylight |
+|---|---|---|---|
+| tungsten held-out, about 3950 K | 0.79 \| 1.25 | 1.03 \| 1.68 | 1.85 \| 3.16 |
+| locus 4200 K (Finding 33) | 1.61 \| 1.59 | 0.67 \| 1.10 | 1.47 \| 2.52 |
+| held-out 4300 K | 1.41 \| 2.06 | 0.60 \| 0.89 | 1.38 \| 2.21 |
+| locus 4500 K | 2.01 \| 2.20 | 0.29 \| 0.43 | 1.17 \| 1.97 |
+| held-out 4700 K | 1.88 \| 2.84 | 0.35 \| 0.43 | 0.96 \| 1.50 |
+| locus 5000 K | 2.61 \| 3.12 | 0.72 \| 0.92 | 0.63 \| 0.88 |
+| locus 5500 K | 3.29 \| 4.21 | 1.47 \| 1.89 | 0.37 \| 0.47 |
+
+  For every lens, held-out grids at 4300 and 4700 K go from 1.18–1.50 to 0.57–0.75, and from 0.78–1.10 to
+  0.29–0.48 (C\* 20–40) with the warm profile.
+- **Real photos** (settings file with the lens setting's LCC; four new LCCs for 35-100 settings), median
+  ΔE00 and dL\*:
+
+| photo | As Shot | daylight | warm |
+|---|---|---|---|
+| B0000862, 35-100 | 4367 K | 0.60, −0.21 | 0.47, −0.33 |
+| B0000672, 35-100 | 4490 K | 0.49, +0.11 | 0.49, −0.01 |
+| B0000673, 35-100 | 4548 K | 0.48, +0.18 | 0.45, +0.02 |
+| B0000678, 35-100 | 4622 K | 0.77, +0.20 | 0.61, +0.10 |
+| B0000863, 35-100 | 4668 K | 0.63, −0.00 | 0.47, −0.22 |
+| B0000917, 28P | 4737 K | 0.74, +0.08 | 0.31, −0.05 |
+| B0000926, 28P | 4751 K | 0.77, +0.10 | 0.28, −0.09 |
+| B0000707, 35-100 | 4764 K | 0.54, +0.08 | 0.51, −0.11 |
+| B0000773, 35-100 | 4768 K | 0.60, +0.18 | 0.40, +0.00 |
+| B0000807, 35-100 | 4829 K | 0.46, +0.11 | 0.39, −0.04 |
+| B0000864, 35-100 | 4872 K | 0.48, −0.03 | 0.58, −0.15 |
+| B0000868, 35-100 | 4924 K | 0.44, −0.01 | 0.55, −0.13 |
+| B0000654, 35-100 | 4936 K | 0.49, −0.04 | 0.51, −0.10 |
+| B0000711, 35-100 | 4951 K | 0.46, +0.13 | 0.50, −0.23 |
+
+- **Switch points** (`c1_sidecars.py`): tungsten below 4000 K, where it and the warm profile tie on the
+  synthetic grids; warm up to 4850 K, between the last real photo it wins (4829 K) and the first it loses
+  (4872 K), a little below where the synthetic grids tie (about 4950 K); daylight to 6200 K; shade above.
+- **The validation set** (28 photos), with each photo's profile picked this way (B0000926, B0000673 and
+  B0000773 now get the warm profile, B0000633 the shade one): 28P 0.554 → 0.483 (corners 0.632 → 0.603),
+  35-100 0.483 → 0.464 (0.501 → 0.480), third body unchanged at 0.328; all 28, 0.473 → 0.444.
+- **Contact sheet** rebuilt: 917 0.74 → 0.31 and 773 0.60 → 0.40 (both warm); 0.26–0.44 overall against
+  Capture One's default 2.95–6.29.
+- Logs: `data/logs/r26_warm_build.txt`, `r26_build6.txt`, `r26_eval.txt`, `r26_heldout_scores.txt`,
+  `r26_real.txt`, `r26_real_summary.txt`, `r26_validation_now.txt`, `sheet_r26.txt`; held-out pairs in
+  `data/synth/r26/`; scores in `data/val/r26/`.

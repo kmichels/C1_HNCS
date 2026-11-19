@@ -99,10 +99,13 @@ corrected by the gain at its position, so the table describes the centre of the 
 
 One table can't follow Phocus's white-balance dependence exactly (about 0.5–1 ΔE00 per 25% change in the
 blue/red balance, Finding 8), so it settles on the average across the six. That covers about 4700 to
-6300 K. Tungsten profiles are fitted the same way on tungsten white balances (about 3100 to 4200 K,
-Finding 21) and picked automatically below 4400 K. Shade profiles are fitted on grids at 6300 to 8600 K
-(`auto_lens_profile.py --light shade`, Finding 44) and picked above 6200 K. Their grids sit where real X2D II
-As Shot neutrals do: about 5% lower in red and 6% lower in blue than the ColorMatrix1 daylight locus.
+6300 K. Three more profiles per lens are fitted the same way at other white balances, with
+`auto_lens_profile.py --light tungsten|warm|shade`, and picked automatically from each photo's As Shot:
+tungsten on grids at about 3100 to 4200 K, below 4000 K (Findings 21, 46); warm at 4200 to 5000 K, from 4000
+to 4850 K (Finding 51); and shade at 6300 to 8600 K, above 6200 K (Findings 44, 45). The switch points are
+where neighbouring profiles score the same, on synthetic grids and on real photos. The warm and shade grids
+sit where real X2D II As Shot neutrals do, slightly off the ColorMatrix1 daylight locus (about 2 to 6% lower
+in red and blue).
 
 `write_profile.py` writes the table using the ProStandard header and L*-spaced input curves, with the
 lens's LCC colour factor built into the input curves (below).
@@ -144,8 +147,8 @@ into its settings file for each raw before import (Findings 39 to 42):
    frame: the LCC differs from the map at a small spot in the very centre, and a calibration taken there
    leaves the rest of the photo up to 0.04 stop off (Finding 43).
 4. **Write a settings file per raw.** `c1_sidecars.py` writes `CaptureOne/Settings<version>/<raw>.cos`
-   beside each raw, before Capture One first sees it: the profile (the tungsten one below about 4400 K, the
-   shade one above about 6200 K),
+   beside each raw, before Capture One first sees it: the profile for its As Shot (tungsten, warm,
+   daylight or shade),
    Linear Response, the lens setting's LCC (copied beside it as `<raw>.<id>.lcc`), exposure for Phocus's
    lens-setting brightness (Finding 27), and white balance as the raw's As Shot multipliers times the LCC's
    calibration and the body's gains, divided by the lens's colour factor that the profile already applies
@@ -209,9 +212,7 @@ offset dominates), and reports the median ΔE00 over the frame and by distance f
   gains, tested on three bodies.
 - **Lenses.** Profiles exist for the 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135;
   `auto_lens_profile.py` builds more from any raw of the lens.
-- **White balance.** The main profiles cover about 4700 to 6200 K, every lens has a shade profile (about
-  6200 to 8600 K), and the 28P and 35-100 have tungsten profiles (about 3100 to 4200 K). Mixed light is
-  untested.
+- **White balance.** Four profiles per lens cover about 3100 to 8600 K. Mixed light is untested.
 - **Overall brightness.** About ±0.2 L\* per photo is unexplained (up to 0.5 L\* on one photo).
 - **Highlights.** Phocus keeps colour in partly clipped highlights and its Highlight Recovery rebuilds
   clipped channels; Capture One doesn't (Finding 23). No profile can change that.

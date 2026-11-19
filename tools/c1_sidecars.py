@@ -11,8 +11,8 @@ For each raw, from its lens setting (lens, focal length, aperture, focus code):
   - otherwise a fallback: Phocus's correction as a radial Light Falloff curve, which can't follow its
     elliptical shape or colour shading (make the LCC with prepare_folder.py --make-lccs), and a white balance
     that cancels the colour shift built into the profile;
-  - under tungsten light (As Shot below about 4400 K) the lens's "Tungsten" profile, and in shade (above about
-    6200 K) its "Shade" profile, where there is one;
+  - by the As Shot white balance, the lens's "Tungsten" profile below about 4000 K, its "Warm" profile up to
+    about 4850 K, and its "Shade" profile above about 6200 K, where there is one;
   - the body's factory calibration (maker note 0x0019), as exposure and white balance relative to the body
     the profiles were made on, so any X2D II uses the same profiles (--no-body-gains turns this off).
 Capture One applies a settings file only to a raw it hasn't seen, so write them before importing. They go in
@@ -38,7 +38,8 @@ from make_preprocess_map import FIT, find_map, global_gain, lens_state, profile_
 from makernote_transplant import entries  # noqa: E402
 
 HALF_DIAG_UM = np.hypot(11656, 8742) / 2 * 3.76
-TUNGSTEN_BELOW_K = 4400                                # daylight profiles fit ~4700-6300 K, tungsten ~3100-4200 K
+TUNGSTEN_BELOW_K = 4000                                # tungsten profiles fit ~3100-4200 K and beat warm below ~4000 K
+WARM_BELOW_K = 4850                                    # warm profiles fit 4200-5000 K; on real photos they win up to ~4850 K
 SHADE_ABOVE_K = 6200                                   # shade profiles fit ~6300-8600 K and beat daylight from ~6200 K
 BODY_REF = (2.600, 2.260)                              # GAIN record of the body the profiles were fitted on
 COLOUR = os.path.join(FIT, "lcc_colour.json")          # each lens's LCC colour factor, built into its profiles
@@ -114,9 +115,10 @@ def daylight_neutral(raw, kelvin, offset=(0.0, 0.0)):
 
 
 def profile_for(name, raw):
-    """The lens's E5 profile, or its tungsten or shade version for the photo's As Shot, when one exists."""
+    """The lens's E5 profile, or its tungsten, warm or shade version for the photo's As Shot, when one exists."""
     k = as_shot_kelvin(raw)
-    light = "Tungsten" if k < TUNGSTEN_BELOW_K else "Shade" if k > SHADE_ABOVE_K else None
+    light = ("Tungsten" if k < TUNGSTEN_BELOW_K else "Warm" if k < WARM_BELOW_K else
+             "Shade" if k > SHADE_ABOVE_K else None)
     if light:
         f = f"HasselbladX2DII100C-HNCS E5 {name} {light}.icm"
         if os.path.exists(os.path.join(HERE, "..", "profiles", f)):

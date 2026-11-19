@@ -16,7 +16,7 @@ What's still unresolved, with what's known and how to test it. The measurements 
   on synthetic grids only (Finding 45), and more for the 28P, checked on one photo.
 - [ ] **Real tungsten photos** for every lens but the 35-100 (the others are checked on synthetic grids).
   `auto_lens_profile.py --light tungsten` builds them (Finding 46).
-- [ ] **Between daylight and tungsten** (about 4200–4700 K), and mixed light: untested.
+- [ ] **Mixed light:** untested.
 
 - [ ] **Several cameras at once.** Profiles can carry one camera's factory-gain correction
   (`bake_lcc_colour.py --body`, Finding 48); photos from any other camera still carry theirs in the white
@@ -50,6 +50,7 @@ What's still unresolved, with what's known and how to test it. The measurements 
 | Tungsten light? | Separate tungsten profiles, picked automatically below 4400 K | 21, 42 |
 | Shade and overcast light? | Separate shade profiles, picked automatically above 6200 K | 33, 44, 45 |
 | Tungsten profiles for every lens? | `auto_lens_profile.py --light tungsten` | 46 |
+| Between daylight and tungsten (4000–4850 K)? | Warm profiles for every lens | 51 |
 | Does changing white balance in Capture One lose the lens correction's colour? | Not any more: each lens's LCC colour is built into its profiles | 47 |
 | Can the profiles carry my camera's own correction? | Yes: `bake_lcc_colour.py --body RAW` | 48 |
 | Do settings files work in catalogs? | Yes, imported referenced or copied, with Include existing adjustments (on by default) | 50 |

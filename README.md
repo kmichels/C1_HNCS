@@ -56,10 +56,9 @@ flowchart TD
 
 ## What's included
 
-- **Profiles** for the XCD 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135, plus a shade version of
-  each, and tungsten versions of the 28P and 35-100. They're used automatically for photos taken in shade or
-  under tungsten light. Profiles for any
-  other XCD lens can be made from one of your raws.
+- **Profiles** for the XCD 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135, each in four versions for
+  tungsten, warm, daylight and shade light, picked automatically from each photo's white balance. Profiles
+  for any other XCD lens can be made from one of your raws.
 - **Lens correction maps** for the 57 lens settings measured so far. Capture One's LCCs are made from them
   on your own computer, because each LCC records your camera's serial number. Maps for new settings can be
   measured with Phocus.
@@ -139,8 +138,8 @@ build anything:
 
 | Photos | Whole frame | Corners |
 |---|---|---|
-| 28P, 7 photos at f/4 to f/16 | 0.55 | 0.63 |
-| 35-100, 16 photos at 35 to 100 mm | 0.48 | 0.50 |
+| 28P, 7 photos at f/4 to f/16 | 0.48 | 0.60 |
+| 35-100, 16 photos at 35 to 100 mm | 0.46 | 0.48 |
 | Another X2D II, one photo each from the 25V, 55V, 90V, 120 Macro and 135 | 0.33 | 0.35 |
 | For comparison: Capture One's default, on the seven photos above | 2.9 to 6.3 | |
 
@@ -150,10 +149,10 @@ build anything:
 
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
   rebuild the clipped channel. Capture One can't, and no profile changes that.
-- **White balance.** The daylight profiles match Phocus best from about 4700 to 6200 K. Shade profiles
-  take over above about 6200 K and tungsten profiles below about 4400 K, for every lens. Most of them
-  have been checked only on synthetic grids: real photos so far cover the 28P and 35-100 in shade and the
-  35-100 under tungsten. Mixed light hasn't been tested.
+- **White balance.** Each photo gets the profile for its As Shot white balance: tungsten below about
+  4000 K, warm up to 4850 K, daylight up to 6200 K, and shade above that. Real photos so far cover the 28P
+  and 35-100 in warm light and shade, and the 35-100 under tungsten; the rest is checked on synthetic grids.
+  Mixed light hasn't been tested.
 - **Brightness.** Some photos come out slightly brighter or darker than Phocus overall, by up to about
   0.5 L\* (0.03 stop).
 - **Changing white balance** in Capture One keeps the colour right on the camera you installed the

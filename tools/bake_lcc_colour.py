@@ -41,7 +41,7 @@ LCC_DIR = os.path.join(REPO, "data", "lcc_c1")
 MAPS = os.path.join(FIT, "preprocess_maps")
 COLOUR = os.path.join(FIT, "lcc_colour.json")
 INSTALLED_BODY = os.path.join(REPO, "data", "installed_body.json")
-LIGHTS = ("", " Shade", " Tungsten")
+LIGHTS = ("", " Shade", " Warm", " Tungsten")
 COLORSYNC = os.path.expanduser("~/Library/ColorSync/Profiles")
 
 
