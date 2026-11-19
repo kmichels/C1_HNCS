@@ -34,6 +34,9 @@ ap.add_argument("--lam-s", type=float, default=1.0)
 ap.add_argument("--real-weight", type=float, default=1.0)
 ap.add_argument("--compare", default=None)
 ap.add_argument("--test-radius", type=float, default=0.5)
+ap.add_argument("--fade-start", type=float, default=100.0, help="table L* where chroma starts fading to neutral (over 10 L*); 95 before Finding 34")
+ap.add_argument("--grey-fade-start", type=float, default=95.0, help="table L* where near-neutral nodes start fading to neutral; -1 for none")
+ap.add_argument("--grey-chroma", type=float, default=6.0, help="C* below which a node counts as near-neutral for --grey-fade-start")
 a = ap.parse_args()
 c2, c4 = (float(v) for v in a.lift.split(","))
 white = D50 / np.array([0.9642, 1.0, 0.82489])
@@ -102,7 +105,7 @@ lut = np.stack([solve(Wtl[:, c] + 1e-3 * bn[:, c]) for c in range(3)], 1)
 wc = np.zeros(G**3)
 tgt = np.zeros((G**3, 3))
 for it in range(5):
-    fin = finalize(lut.reshape(G, G, G, 3)).reshape(-1, 3)
+    fin = finalize(lut.reshape(G, G, G, 3), fade_start=a.fade_start, grey_fade_start=None if a.grey_fade_start < 0 else a.grey_fade_start, grey_chroma=a.grey_chroma).reshape(-1, 3)
     viol = np.abs(fin - lut).max(axis=1) > 0.05
     print(f"constraint iter {it}: nodes outside storable range {int(viol.sum())}", flush=True)
     if not viol.any():
@@ -112,8 +115,8 @@ for it in range(5):
     s2 = factorized((A0 + sp.diags(wc)).tocsc())
     rhs = Wtl + 1e-3 * bn + wc[:, None] * tgt
     lut = np.stack([s2(rhs[:, c]) for c in range(3)], 1)
-fin = finalize(lut.reshape(G, G, G, 3)).reshape(-1, 3)
-np.savez(a.out, lut=fin, base=p, lam_s=a.lam_s)
+fin = finalize(lut.reshape(G, G, G, 3), fade_start=a.fade_start, grey_fade_start=None if a.grey_fade_start < 0 else a.grey_fade_start, grey_chroma=a.grey_chroma).reshape(-1, 3)
+np.savez(a.out, lut=fin, base=p, lam_s=a.lam_s, fade_start=a.fade_start, grey_fade_start=a.grey_fade_start, grey_chroma=a.grey_chroma, finalized=True)
 d_s = de2000(W_s @ fin, lab_s)
 print(f"\nwrote {a.out}; synthetic fit residual median {np.median(d_s):.2f} p90 {np.percentile(d_s, 90):.2f}")
 

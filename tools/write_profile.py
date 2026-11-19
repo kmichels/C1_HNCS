@@ -14,15 +14,20 @@ from tetra import tetra  # noqa: E402
 IN = "/Applications/Capture One.app/Contents/Frameworks/ImageProcessing.framework/Versions/A/Resources/Profiles/Input/"
 
 
-def finalize(raw, knee=90.0, cmax=127.0):
+def finalize(raw, knee=90.0, cmax=127.0, fade_start=95.0, grey_fade_start=None, grey_chroma=20.0):
     """Make the fitted LUT storable and well-behaved where there was no data:
-    L* clipped to [0, 100] with chroma fading out as L* nears 100, then soft-compressed chroma."""
+    L* clipped to [0, 100] with chroma fading out over the 10 L* above fade_start, then soft-compressed chroma.
+    With grey_fade_start, near-neutral nodes (C* under grey_chroma) also fade from that L*: Phocus's white is neutral,
+    and the fit has no unclipped data there, while saturated colours near L* 98 keep their chroma."""
     lut = raw.copy()
     L = np.clip(lut[..., 0], 0, 100)
     a, b = lut[..., 1], lut[..., 2]
     C = np.hypot(a, b)
     h = np.arctan2(b, a)
-    over = np.clip((raw[..., 0] - 95.0) / 10.0, 0, 1)  # beyond Phocus white: fade to neutral
+    over = np.clip((raw[..., 0] - fade_start) / 10.0, 0, 1)
+    if grey_fade_start is not None:
+        greyish = np.clip((grey_chroma - C) / (0.6 * grey_chroma), 0, 1)
+        over = np.maximum(over, np.clip((raw[..., 0] - grey_fade_start) / 10.0, 0, 1) * greyish)
     C = C * (1 - over)
     span = cmax - knee
     C = np.where(C > knee, knee + span * np.tanh((C - knee) / span), C)
@@ -41,8 +46,11 @@ def main():
     ap.add_argument("--input-gain", default=None, help="r,g,b linear gains applied before the LUT (via the input curves), e.g. to undo an LCC's global colour shift")
     args = ap.parse_args()
 
-    raw = np.load(args.lut_npz)["lut"].reshape(G, G, G, 3)
-    lut = finalize(raw)
+    z = np.load(args.lut_npz)
+    raw = z["lut"].reshape(G, G, G, 3)
+    # fit_synthetic.py saves an already finalized table; finalizing it again would fade and compress twice.
+    # Older tables (no flag) keep the second pass so they rebuild exactly as shipped.
+    lut = raw if "finalized" in z and bool(z["finalized"]) else finalize(raw)
 
     pro = InputProfile(IN + "HasselbladX2DII100C-ProStandard.icm")
     x = np.linspace(0, 1, 1025)

@@ -1223,3 +1223,61 @@ can be changed. The daylight profiles match Phocus best near 5500 K. Colourful p
   Finding 24's 16 35-100 frames, at about 4500–6600 K (estimated from ColorMatrix1), scored 0.26–0.61
   with no trend by temperature (correlation 0.05). Real scenes are mostly low in chroma, so the drift
   shows much less there. Three frames is a small sample. Log: `data/logs/r11_real.txt`.
+
+### Finding 34: bright yellows kept saturated; E5 profiles rebuilt
+
+**In plain terms:** Finding 33's faded yellows came from two things in how the profiles were written. One
+rule faded colour to grey above L\* 95. Then the profile writer ran that rule a second time. The rebuilt E5
+profiles fade colour only above L\* 100. They keep a fade near white only for nearly neutral colours, so
+whites stay clean. In Capture One, bright yellows and oranges went from about 19 ΔE00 to 2.4. Everything
+else is unchanged or slightly better. All seven E5 profiles were rebuilt and installed under the same
+names.
+
+- **Causes.**
+  - `finalize` faded chroma between table L\* 95 and 105, but Phocus's saturated yellows sit at L\* 98.
+  - `fit_synthetic.py` saved an already finalized table, and `write_profile.py` finalized it again. That
+    faded nodes at L\* 95–100 a second time and compressed high chroma twice. 19,654 of 35,937 nodes
+    changed.
+- **The new `finalize`.** Colour fades over the 10 L\* above 100. Near-neutral nodes also fade from L\* 95:
+  fully at C\* 2.4 or less, not at all from C\* 6. Phocus's white is neutral, and the fit has no unclipped
+  data there. Without that fade the brightest greys took a green tint (a\* −2 at L\* 100).
+- **Fitted tables** now carry a `finalized` flag and their settings, so `write_profile.py` doesn't finalize
+  them twice. Older tables without the flag still rebuild byte-identical; this was checked on all seven
+  shipped profiles.
+- **Defaults.** `fit_synthetic.py` now defaults to `--fade-start 100 --grey-fade-start 95 --grey-chroma 6`.
+  `--fade-start 95 --grey-fade-start -1 --grey-chroma 20` reproduces the old tables exactly.
+- **Offline scoring.** `tools/round12/eval_tables.py` puts the round-11 ladder through Capture One's own
+  camera RGB (a probe render) and through each table. Against a real Capture One render it agrees to
+  a median of 0.035 ΔE00. It skips patches whose camera RGB the probe clips at 1: the brightest blues,
+  reds and magentas.
+
+35-100 variants (ladder: median ΔE00 at saturation 0.6 and 0.9; real: 19 held-out frames, frame centre):
+
+| table | yellow-orange 0.59–0.84 | yellow-orange 0.88–0.99 | worst grey | all colours p90 | real (mean of medians) | real blocks at L\* > 90 |
+|---|---|---|---|---|---|---|
+| shipped before | 15.91 | 20.94 | 0.99 | 10.21 | 0.630 | 0.61 |
+| finalized once, fade from 95 | 15.07 | 20.37 | 0.93 | 9.66 | 0.630 | 0.61 |
+| fade from 100 | 1.89 | 1.57 | 2.90 | 3.21 | 0.630 | 0.49 |
+| fade from 100, greys (C\* < 20) from 95 | 1.89 | 1.58 | 0.93 | 5.30 | 0.631 | 0.59 |
+| **fade from 100, greys (C\* < 6) from 95** | **1.89** | **1.57** | **0.94** | **2.92** | **0.630** | **0.55** |
+
+- **Capture One renders of the ladder**, old 35-100 profile against the new one:
+  - Bright yellow-orange (saturation 0.6 and up, level 0.59–0.99): 19.39 → 2.39.
+  - Other hues: 2.85 → 2.78.
+  - Greys: 0.40 → 0.37, neutral up to white (a\* and b\* within 0.3 from level 0.71).
+  - Yellow at saturation 0.9 now holds C\* 105–106 up to white. Phocus gives 116–121; the old profile
+    gave 4–17. The rest of that gap is the soft chroma compression above C\* 90.
+  - The installed profile renders identically to the tested one.
+- **Rebuilt tables** (synthetic fit residual, median / p90):
+  - 35-100: 1.48 / 7.16 → 1.39 / 5.71.
+  - 28P: 1.51 / 7.02 → 1.42 / 5.73. Real held-out frames unchanged (1.401). Bright yellow-orange
+    14.6 / 20.6 → 2.2 / 1.9.
+  - 38V, rebuilt by `auto_lens_profile.py` from B0001059: 1.46 / 6.74 → 1.38 / 5.48. Bright yellow-orange
+    14.1 / 20.7 → 2.3 / 2.0.
+  - Tungsten 35-100: 2.08 / 6.10 → 2.00 / 5.38.
+  - Tungsten 28P: 2.05 / 5.95 → 1.98 / 5.35.
+- **LCC profiles** use the same tables with the gains in `fit/lcc/input_gains.txt`.
+- **E4 wasn't rebuilt.** It comes from `fit_anchored.py`, which still uses the old rule.
+- **Not checked:** whole real photos rendered in Capture One. The held-out real pairs, scored offline at
+  the frame centre, didn't change.
+- Logs: `data/logs/r12_fade_35100.txt`, `r12_fade_28p.txt`, `r12_fade_38v.txt`, `r12_c1_ladder.txt`.

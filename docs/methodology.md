@@ -92,9 +92,11 @@ That leaves about 34,000–41,000 blocks per frame.
   to the same data. A tiny ridge (λr = 0.001) pulls nodes with no data toward it, so colours that
   never appeared in the training frames still get something sensible.
 - **Storable range**: Lab in the profile must sit in L* 0–100 and chroma within the encoding. Nodes
-  outside are pinned to clipped values (chroma soft-compressed above 90, fading to neutral above
-  Phocus's white at L* 95) and the fit is re-solved around them, so the clipping doesn't put kinks
-  next to real data.
+  outside are pinned to clipped values and the fit is re-solved around them, so the clipping doesn't put
+  kinks next to real data. Chroma is soft-compressed above 90. It fades to neutral above table L* 100,
+  and for near-neutral nodes (C* under 6) from L* 95, so whites stay clean. Phocus keeps saturated
+  yellows at L* 98, so those keep their colour. Until Finding 34 everything faded from L* 95, and the
+  profile writer applied the fade twice; E4 was built that way.
 
 `write_profile.py` writes the table using the ProStandard header and the same L*-spaced input curves
 as the probe, plus a style that sets only the profile and the Linear Response film curve.

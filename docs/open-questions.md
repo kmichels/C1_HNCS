@@ -58,10 +58,14 @@ Everything still open, in one place. Details for the numbered questions are belo
   the 38V: 0.35–0.53 ΔE00 with pre-processing (Finding 32).
 - [ ] Profiles for Phocus's Reproduction responses, if wanted: synthetic grids rendered with `ColorModel`
   1 or 4, fitted like E5.
-- [ ] Keep bright yellows and oranges saturated (Finding 33). `write_profile.finalize` fades chroma to
-  zero between table L\* 95 and 105, but Phocus keeps saturated yellows at L\* 98 and C\* 120. Rebuild
-  E5 with the fade moved higher, or keyed to camera-RGB brightness instead of L\*. Then check the round-11
-  ladder (`tools/round11/`) and the Finding 24 frames for regressions near white.
+- [x] Keep bright yellows and oranges saturated (Finding 34). The colour fade now starts at L\* 100, and
+  near-white greys fade from L\* 95. The profile writer no longer runs the fade twice. All seven E5
+  profiles were rebuilt. Bright yellows and oranges went from about 19 to 2.4 ΔE00 in Capture One; real
+  held-out frames didn't change. Still to do: whole real photos rendered in Capture One, and E4, which
+  `fit_anchored.py` builds with the old rule.
+- [ ] Very saturated colours above C\* 90 (strong yellow, magenta) still lose 10–20 C\* to the profiles' soft
+  chroma compression (`finalize`'s knee at 90, cap 127). The Lab encoding allows more along most hues;
+  a knee keyed to the encodable a\*/b\* range would keep more of it.
 - [ ] Shade profiles, like the tungsten ones: E5 fitted on 7000–8000 K grids ("HNCS E5 … Shade"). Worth
   it if shade frames matter; synthetic colours drift to about 2 ΔE00 at 8000 K (Finding 33).
 

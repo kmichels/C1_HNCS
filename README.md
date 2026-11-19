@@ -99,9 +99,10 @@ profiles), use **As Shot** white balance, and edit as usual afterwards.
   than Phocus, and Phocus's per-lens-setting brightness (up to about ±0.5 L\* on the 35-100 between 45
   and 75 mm) isn't included. About ±0.2 L\* per frame remains unexplained in every route.
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
-  rebuild the clipped channel; Capture One can't, and no profile can change that. Separately, very bright
-  saturated yellows and oranges (Phocus L\* above about 95) come out much paler with these profiles. That
-  comes from how the profiles are written, and it can be fixed.
+  rebuild the clipped channel; Capture One can't, and no profile can change that. Below clipping, very
+  saturated colours (above about C\* 90, such as a strong yellow) come out 10–20 C\* less saturated than
+  in Phocus. E4 still turns bright saturated yellows and oranges pale; the E5 profiles were fixed for
+  this in Finding 34.
 - **Phocus defaults only.** The match is to Phocus's Standard response in its default working space.
 
 More in [docs/open-questions.md](docs/open-questions.md).

@@ -133,6 +133,7 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `hncs_wb_structure.py LUT GAINMAP REF_PAIRS PAIRS…` | What changes with white balance: gains, a 3×3 before the table, or a 3×3 after |
 | `round3/` | Analyses for Findings 14–16 (response keys, tone-stage space, factory gains) from the saved renders in `data/synth/r3/` |
 | `round11/` | Finding 33: bright-colour and exposure-push ladder (`make_ladder.py`), white-balance grids from a Kelvin (`make_wb_grids.py`, `cct.py`), Phocus and Capture One renders (`render_phocus.py`, `render_c1.applescript`, `render_real.applescript`), and `analyze.py`; run from `data/synth/r11/` |
+| `round12/eval_tables.py PAIRS_DIR LUT…` | Finding 34: score tables offline, through Capture One's camera RGB for the round-11 ladder (a probe render in `data/synth/r11/probe/`) and on real held-out pairs |
 
 `fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
 `fit/synthetic/flat_maps/` the flat-field gain maps, so E5 can be refitted without Phocus.
