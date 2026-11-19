@@ -42,7 +42,7 @@ flowchart TD
 |---|---|
 | `prepare_folder.py FOLDER [--make-maps] [--make-profiles] [--make-lccs] [--lab DIR] [--force]` | Everything below for a folder of raws, then a settings file per raw |
 | `auto_maps.py RAW… [--maps DIR]` | Phocus's lens correction map for every lens setting among the raws that doesn't have one (Phocus, about 25 s each) |
-| `auto_lens_profile.py RAW… [--name N] [--install]` | A colour profile and style for a lens from any of its raws, using only Phocus (about 5 minutes) |
+| `auto_lens_profile.py RAW… [--name N] [--install] [--light shade]` | A colour profile and style for a lens from any of its raws, using only Phocus (about 5 minutes); `--light shade` makes its shade version |
 | `state_lcc.py ensure RAW…` | An LCC for every lens setting among the raws that doesn't have one, made and calibrated in Capture One (about 1.5 minutes each) |
 | `state_lcc.py make HOST MAP` / `calibrate HOST MAP` | The two halves of `ensure`, for one map |
 | `state_lcc.py clean` | Remove the test raws `state_lcc.py` left in the lab session (quit Capture One first) |
@@ -135,6 +135,7 @@ use or rebuild the profiles. Scripts for the earlier real-photo profiles (`pair_
 | `round14/` | 36 and 37: the 90V's focus dependence and the yellow fix on real photos |
 | `round16/` | 39: what a settings file can carry |
 | `round17/` | 40: an LCC per lens setting (`make_state_lcc.py`, used by `state_lcc.py`) |
+| `round21/` | 44: scoring tables offline across white balance (`shade_eval.py`) |
 | `round20/` | 43: why the LCC route's brightness was off (`lcc_brightness.py`), validation (`validate.py`, `render_phocus.py`), contact sheet renders |
 
 ## Capture One scripting notes

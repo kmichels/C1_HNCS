@@ -1699,3 +1699,60 @@ the settings-file route within 0.01 ΔE00 of pre-processing, and the offsets are
   r 0.02), and about ±0.2 L\* per photo that pre-processing had too.
 - Logs: `data/logs/r20_lcc_brightness.txt`, `r20_refflats.txt`, `r20_recalibrate.txt`, `r20_validate.txt`,
   `r20_summary.txt`, `sheet_r20.txt`; scores in `data/val/r20/val/`.
+
+### Finding 44: shade profiles for the 28P and 35-100
+
+**In plain terms:** In shade and overcast light, Phocus's colour moves away from what one daylight profile
+can follow. Like the tungsten profiles, a separate profile fitted on synthetic grids at shade white
+balances fixes most of it. On six real 35-100 photos at 6221 to 7369 K it brings Phocus-matching from
+0.46–0.81 ΔE00 down to 0.44–0.54, and on the one 28P photo in that range from 0.65 to 0.42. Settings files
+now pick the shade profile automatically above 6200 K.
+
+- **Where the grids go.** Real X2D II As Shot neutrals don't sit on the ColorMatrix1 daylight locus. Across
+  116 raws (the owner's and blog.tonalphoto.com's) they're offset by a median −0.040 in log red and −0.057
+  in log blue, and by −0.063 and −0.067 between 6000 and 6600 K. Shade grids use the locus at each
+  temperature with an offset of (−0.055, −0.06). At 6300 K that's (0.339, 1, 0.632), next to B0000850's
+  (0.338, 1, 0.625). `c1_sidecars.daylight_neutral` computes it.
+- **The fit** (`auto_lens_profile.py --light shade`): a 33-level grid at 7300 K in three parts plus 22-level
+  grids at 6300, 6800, 7900 and 8600 K, in copies of the daylight profiles' hosts (B0000931 for the 28P,
+  B0000727 for the 35-100) with the reference body's record, with Phocus's spatial gain from a flat removed.
+  Synthetic fit residual median 0.58, p90 2.5, for both lenses. Pairs saved as
+  `fit/synthetic/pairs/HNCSshade<lens>_*.npz`.
+- **Offline scoring** (`tools/round21/shade_eval.py`, Capture One's camera RGB from the patch lookup). On
+  Finding 33's grids (35-100 host, on the locus, not used in either fit) it reproduces Finding 33's Capture
+  One numbers to within 0.03 for the daylight profile. Median ΔE00, C\* 20–40 | C\* 40–60:
+
+| grid | 35-100 daylight | 35-100 shade |
+|---|---|---|
+| 5500 K | 0.37 \| 0.47 | 1.28 \| 1.55 |
+| 6000 K | 0.86 \| 0.92 | 0.99 \| 1.21 |
+| 6500 K | 1.28 \| 1.26 | 0.72 \| 0.85 |
+| 7000 K | 1.54 \| 1.58 | 0.37 \| 0.38 |
+| 7500 K | 1.85 \| 1.88 | 0.77 \| 0.49 |
+| 8000 K | 2.13 \| 2.36 | 1.12 \| 0.94 |
+
+  On its own grids (training data) the 28P shade table goes from 1.13 | 1.59 to 0.64 | 0.62 at 7300 K and
+  from 1.71 | 2.62 to 0.85 | 1.11 at 8600 K; at 6300 K the two are about equal (0.64 | 0.94 against
+  0.81 | 1.03).
+- **Real photos** against Phocus with corrections on, whole frame, settings file with the lens setting's
+  LCC (two LCCs made for this: 35-100 35 mm f/5.6 and 40 mm f/16). Median, corners (r > 0.8), dL\*:
+
+| photo | As Shot | daylight profile | shade profile |
+|---|---|---|---|
+| B0000850, 35-100 | 6221 K | 0.46, 0.41, −0.32 | 0.44, 0.44, −0.34 |
+| B0000841, 35-100 | 6241 K | 0.56, 0.61, −0.09 | 0.45, 0.40, −0.12 |
+| B0000901, 28P | 6255 K | 0.65, 0.77, −0.06 | 0.42, 0.33, +0.03 |
+| B0000840, 35-100 | 6420 K | 0.58, 0.62, −0.07 | 0.44, 0.45, −0.22 |
+| B0000633, 35-100 | 6574 K | 0.62, 0.66, +0.27 | 0.54, 0.44, −0.16 |
+| B0000688, 35-100 | 6658 K | 0.69, 0.55, +0.12 | 0.50, 0.28, +0.04 |
+| B0000686, 35-100 | 7369 K | 0.81, 1.01, +0.32 | 0.50, 0.72, +0.05 |
+
+- **Switch point.** The synthetic grids tie at about 6300 K, and every real photo from 6221 K up is better
+  with the shade profile, so `c1_sidecars.py` uses it above 6200 K (`SHADE_ABOVE_K`). Photos below that are
+  unchanged. Of the 28 validation photos only B0000633 crosses it, which takes the 35-100 mean from 0.483 to
+  about 0.478.
+- **Contact sheet:** frame 901 (6255 K) now gets the 28P shade profile: 0.65 → 0.42. The other rows are
+  unchanged.
+- Still open: shade profiles for the other lenses, and more real 28P shade photos.
+- Logs: `data/logs/r21_shade_build.txt`, `r21_eval_35-100.txt`, `r21_eval_28p.txt`, `r21_real.txt`,
+  `r21_summary.txt`, `sheet_r21.txt`; scores in `data/val/r21/`.

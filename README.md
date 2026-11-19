@@ -56,8 +56,9 @@ flowchart TD
 
 ## What's included
 
-- **Profiles** for the XCD 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135, plus tungsten versions of
-  the 28P and 35-100 that are used automatically for photos taken under tungsten light. Profiles for any
+- **Profiles** for the XCD 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135, plus tungsten and shade
+  versions of the 28P and 35-100 that are used automatically for photos taken under tungsten light or in
+  shade. Profiles for any
   other XCD lens can be made from one of your raws.
 - **Lens correction maps** for the 57 lens settings measured so far. Capture One's LCCs are made from them
   on your own computer, because each LCC records your camera's serial number. Maps for new settings can be
@@ -141,9 +142,10 @@ build anything:
 
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
   rebuild the clipped channel. Capture One can't, and no profile changes that.
-- **White balance.** The profiles match Phocus best in daylight (about 4700 to 6300 K). Under tungsten
-  light the tungsten profiles take over, for the 28P and 35-100 only. In shade and overcast light, colourful
-  areas drift: about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K. Mixed light hasn't been tested.
+- **White balance.** The daylight profiles match Phocus best from about 4700 to 6200 K. For the 28P and
+  35-100, tungsten profiles take over below about 4400 K and shade profiles above about 6200 K. Other
+  lenses keep their daylight profile, whose colourful areas drift in shade and overcast light: about
+  1.3 ΔE00 at 6500 K and 2.2 at 8000 K. Mixed light hasn't been tested.
 - **Brightness.** Some photos come out slightly brighter or darker than Phocus overall, by up to about
   0.5 L\* (0.03 stop).
 - **If you change white balance** in Capture One, a small colour correction that comes with the lens

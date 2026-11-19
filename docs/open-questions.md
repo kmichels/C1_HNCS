@@ -14,9 +14,8 @@ What's still unresolved, with what's known and how to test it. The measurements 
   the profile encoding's limits.
 
 **White balance**
-- [ ] **Shade profiles**, like the tungsten ones: fitted on 7000–8000 K grids ("HNCS E5 … Shade"), and
-  picked automatically like the tungsten ones. Colourful synthetic patches drift to about 1.3 ΔE00 at
-  6500 K and 2.2 at 8000 K (Finding 33); three real shade photos scored 0.58–0.78.
+- [ ] **Shade profiles for the other lenses** (38V, 25V, 55V, 90V, 120 Macro, 135):
+  `auto_lens_profile.py RAW --light shade --install`. The 28P's has been checked on one real photo only.
 - [ ] **The 28P tungsten profile** on real tungsten photos (only the 35-100's has been checked).
 - [ ] **Between daylight and tungsten** (about 4200–4700 K), and mixed light: untested.
 - [ ] **Changing white balance in Capture One** replaces the small LCC colour correction carried in the
@@ -49,5 +48,6 @@ What's still unresolved, with what's known and how to test it. The measurements 
 | Why were some photos brighter or darker with the LCC route? | Each LCC was calibrated at a centre spot where it differs from the rest of the frame | 43 |
 | Does Phocus handle highlights better? | It keeps colour where one channel clips, and Highlight Recovery rebuilds clipped channels; Capture One can't | 23, 25 |
 | Tungsten light? | Separate tungsten profiles, picked automatically below 4400 K | 21, 42 |
+| Shade and overcast light? | Separate shade profiles, picked automatically above 6200 K | 33, 44 |
 | Bright yellows and saturated colours? | Kept, after fixing how the profiles fade and compress colour | 34, 37, 38 |
 | Profiles for lenses not owned? | Built from Phocus renders alone, from any raw of the lens | 26, 32, 35 |

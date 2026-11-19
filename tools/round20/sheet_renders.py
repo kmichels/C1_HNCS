@@ -1,7 +1,7 @@
 """Capture One renders for the README contact sheet: S_<raw> with its settings file and D_<raw> at Capture
 One's defaults, rendered at 50% like validate.py, kept in OUT. Run with the lab session open.
 
-usage: python sheet_renders.py OUT RAW...
+usage: python sheet_renders.py OUT PREFIX RAW...   (PREFIX: one Capture One has not seen in the session)
 """
 import os
 import shutil
@@ -15,18 +15,18 @@ from state_lcc import wait_file, wait_listed  # noqa: E402
 
 LAB = os.path.expanduser("~/Pictures/X2D Profile/Capture")
 REPO = os.path.join(TOOLS, "..")
-out, raws = sys.argv[1], sys.argv[2:]
+out, PRE, raws = sys.argv[1], sys.argv[2], sys.argv[3:]
 os.makedirs(out, exist_ok=True)
 stage = os.path.join(REPO, "data", "synth", "r20", "sheet")
 os.makedirs(stage, exist_ok=True)
 names = []
 for raw in raws:
     stem = os.path.splitext(os.path.basename(raw))[0]
-    for pre in ("S2", "D2"):  # names Capture One has not seen in this session
+    for pre in (PRE + "S", PRE + "D"):  # names Capture One has not seen in the session
         nm = f"{pre}_{stem}.3FR"
         p = os.path.join(stage, nm)
         shutil.copyfile(raw, p)
-        if pre == "S2":
+        if pre == PRE + "S":
             r = subprocess.run([sys.executable, "-I", os.path.join(TOOLS, "c1_sidecars.py"), p, "--dest", LAB, "--force"],
                                check=True, capture_output=True, text=True)
             print(r.stdout.strip().splitlines()[0], flush=True)

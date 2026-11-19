@@ -8,7 +8,8 @@ For each raw, from its lens setting (lens, focal length, aperture, focus code):
       LCC's overall colour shift and add Phocus's lens-setting brightness;
   - otherwise a fallback: Phocus's correction as a radial Light Falloff curve, which can't follow its
     elliptical shape or colour shading (make the LCC with prepare_folder.py --make-lccs);
-  - under tungsten light (As Shot below about 4400 K) the lens's "Tungsten" profile, where there is one;
+  - under tungsten light (As Shot below about 4400 K) the lens's "Tungsten" profile, and in shade (above about
+    6200 K) its "Shade" profile, where there is one;
   - the body's factory calibration (maker note 0x0019), as exposure and white balance relative to the body
     the profiles were made on, so any X2D II uses the same profiles (--no-body-gains turns this off).
 Capture One applies a settings file only to a raw it hasn't seen, so write them before importing. They go in
@@ -35,6 +36,7 @@ from makernote_transplant import entries  # noqa: E402
 
 HALF_DIAG_UM = np.hypot(11656, 8742) / 2 * 3.76
 TUNGSTEN_BELOW_K = 4400                                # daylight profiles fit ~4700-6300 K, tungsten ~3100-4200 K
+SHADE_ABOVE_K = 6200                                   # shade profiles fit ~6300-8600 K and beat daylight from ~6200 K
 BODY_REF = (2.600, 2.260)                              # GAIN record of the body the profiles were fitted on
 
 
@@ -73,11 +75,31 @@ def as_shot_kelvin(raw):
     return 449 * m**3 + 3525 * m**2 + 6823.3 * m + 5520.33
 
 
+def daylight_neutral(raw, kelvin, offset=(0.0, 0.0)):
+    """As Shot neutral (R, 1, B) for a daylight-locus colour temperature, from the raw's ColorMatrix1, times
+    exp(offset) on R and B. Real X2D II As Shot neutrals sit about (-0.05, -0.06) off the locus."""
+    with tifffile.TiffFile(raw) as t:
+        v = t.pages[0].tags["ColorMatrix1"].value
+    cm = np.array([v[2 * i] / v[2 * i + 1] for i in range(9)]).reshape(3, 3)
+    T = float(kelvin)
+    if T <= 7000:
+        x = -4.6070e9 / T**3 + 2.9678e6 / T**2 + 0.09911e3 / T + 0.244063
+    else:
+        x = -2.0064e9 / T**3 + 1.9018e6 / T**2 + 0.24748e3 / T + 0.237040
+    y = -3.000 * x * x + 2.870 * x - 0.275
+    n = cm @ np.array([x / y, 1.0, (1 - x - y) / y])
+    n = n / n[1]
+    return n * np.exp([offset[0], 0.0, offset[1]])
+
+
 def profile_for(name, raw):
-    """The lens's E5 profile, or its tungsten version under tungsten light when one exists."""
-    tung = f"HasselbladX2DII100C-HNCS E5 {name} Tungsten.icm"
-    if as_shot_kelvin(raw) < TUNGSTEN_BELOW_K and os.path.exists(os.path.join(HERE, "..", "profiles", tung)):
-        return tung
+    """The lens's E5 profile, or its tungsten or shade version for the photo's As Shot, when one exists."""
+    k = as_shot_kelvin(raw)
+    light = "Tungsten" if k < TUNGSTEN_BELOW_K else "Shade" if k > SHADE_ABOVE_K else None
+    if light:
+        f = f"HasselbladX2DII100C-HNCS E5 {name} {light}.icm"
+        if os.path.exists(os.path.join(HERE, "..", "profiles", f)):
+            return f
     return f"HasselbladX2DII100C-HNCS E5 {name}.icm"
 
 

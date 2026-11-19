@@ -38,7 +38,7 @@ Everything is in a public repo: profiles, styles, tools and a long research log
   because Adobe applies its tone curve differently.
 - **Your Lightroom post's open items, checked in Capture One.** Whites near clipping track Phocus. A
   push behaves exactly like more light, in both apps. Bright saturated yellows were fading in my own
-  profiles, which is fixed now. Colours drift above about 6500 K.
+  profiles, which is fixed now. Colours drifted above about 6500 K; shade profiles now fix that.
 - **Some smaller things.** The Response and Working Space menus are decoded. Vignetting correction is a
   plain multiplier on the raw values. Phocus reads focus distance from one byte of the lens data, and on
   the 90V that byte moves the edge correction by close to half a stop. And Phocus's highlight recovery
@@ -149,6 +149,8 @@ I ran the things your post flagged in Lightroom through the same synthetic metho
   5500 K and drift either side: about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K. Your single matrix stayed within 0.3 ΔE of
   per-setting fits from 4500 to 8000 K, so some of this may be how Capture One applies white balance
   rather than Phocus. Three of my real shade frames scored 0.58–0.78, against about 0.5 in daylight.
+  A separate profile fitted on grids at 6300 to 8600 K, used automatically above 6200 K, brings six real
+  35-100 photos at 6221 to 7369 K from 0.46–0.81 to 0.44–0.54, and one 28P photo from 0.65 to 0.42.
 - **BaselineExposure.** Capture One applies the tag the same way Phocus does. DPReview frames tagged +1
   or +2 EV fit as well as untagged ones, with none of Lightroom's extra 0.2 EV.
 
