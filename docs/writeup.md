@@ -3,27 +3,46 @@
 *Draft write-up for blog.tonalphoto.com's author. Numbers are from [research-log.md](research-log.md).*
 
 I shoot a Hasselblad X2D II 100C and I like what Phocus does with its colour, but I edit in Capture
-One. Your post about building a Lightroom profile that matches Phocus (and your measurements of how
-Phocus treats white balance, edge brightening, BaselineExposure and the lens files in the firmware) is
-what made me think the same thing could be done for Capture One. It can. Along the way I found a few
-things about Phocus that I haven't seen written up anywhere, and they seemed worth sending your way. Everything is in a public repo: profiles, styles, tools, data and a long research log.
+One. Your post on [what a Lightroom camera profile can and cannot reproduce from
+Phocus](https://blog.tonalphoto.com/lightroom-camera-profile-phocus-color/) is what made me think the
+same could be done for Capture One. Several of your other posts pointed me at the right places:
+- [Hasselblad tying HNCS to white balance](https://blog.tonalphoto.com/phocus-mac-imports-hncs-default/)
+- [the edge brightening Phocus applies with lens correction
+  off](https://blog.tonalphoto.com/phocus-radial-gain-lens-correction-off/)
+- [the BaselineExposure tag](https://blog.tonalphoto.com/x2d-ii-baselineexposure-tag-phocus-lightroom/)
+- [the lens-correction database in the
+  firmware](https://blog.tonalphoto.com/xcd-65e-135v-unannounced-lenses-firmware/)
+- [the hot folder as a batch processor](https://blog.tonalphoto.com/phocus-hot-folder-batch-processing/)
+- [Phocus correcting for focus distance through its own
+  data](https://blog.tonalphoto.com/hasselblad-x2d-ii-focus-distance/)
+
+It can be done. Along the way I found a few things about Phocus I haven't seen written up anywhere. You
+also sent me raws from five lenses I don't own, so this is partly a report on what they showed.
+Everything is in a public repo: profiles, styles, tools and a long research log
+([github.com/swalke16/C1_HNCS](https://github.com/swalke16/C1_HNCS)).
 
 ## Quickly
 
 - **Capture One profiles that land about 0.5 ΔE00 from Phocus** at the frame centre, on frames never
-  used in fitting. One per lens for the XCD 28P, 35-100 and 38V, tungsten versions of the first two, and
-  a lens-agnostic one.
+  used in fitting. There's one per lens: the XCD 28P, 35-100 and 38V I own, plus the 25V, 55V, 90V,
+  120 Macro and 135 from your raws. The 28P and 35-100 also have tungsten versions.
 - **A pre-processing step that gets the whole frame there.** It writes Phocus's lens correction and colour
   shading into a copy of the raw, and Capture One renders the copy with a plain profile. On 23 of my
-  photos that no fit had seen, the whole-frame median is 0.65 on the 28P and 0.49 on the 35-100.
+  photos that no fit had seen, the whole-frame median is about 0.5.
 - **Every X2D II carries a factory calibration record** that Phocus uses to make bodies render alike.
-  Capture One and Lightroom ignore it, so a profile made on one camera is slightly off on another.
+  Capture One ignores it; I haven't tested Lightroom. Your camera's record is further from mine than any
+  I'd seen, and Phocus treats it exactly as the formula predicts. On your five raws, correcting for it brings Capture
+  One from about 1.8 to between 0.16 and 0.51 ΔE00 over the whole frame.
 - **HNCS has a recognisable structure.** A colour stage first, then one tone curve applied to each
   channel in Hasselblad's own RGB space, whose definition ships inside Phocus. That may matter for a DCP,
   because Adobe applies its tone curve differently.
-- **Some smaller things:** the Response and Working Space menus decoded; vignetting correction is a plain
-  multiplier on the raw values; Phocus reads focus distance from one byte of the lens data and adjusts
-  that correction with it; and Phocus's highlight recovery really does rebuild clipped channels.
+- **Your Lightroom post's open items, checked in Capture One.** Whites near clipping track Phocus. A
+  push behaves exactly like more light, in both apps. Bright saturated yellows were fading in my own
+  profiles, which is fixed now. Colours drift above about 6500 K.
+- **Some smaller things.** The Response and Working Space menus are decoded. Vignetting correction is a
+  plain multiplier on the raw values. Phocus reads focus distance from one byte of the lens data, and on
+  the 90V that byte moves the edge correction by close to half a stop. And Phocus's highlight recovery
+  really does rebuild clipped channels.
 
 ## Slowly
 
@@ -34,13 +53,13 @@ real 3FR can be filled with flat patches of exactly known camera RGB, and both a
 original photo, same camera, lens and white balance. So instead of fitting to photographs, I fitted to
 tens of thousands of patches I designed.
 
-Two tricks made that practical. In Capture One, a "probe" profile whose device RGB is read as ROMM RGB
-gives back the exact camera RGB Capture One hands to a profile. In Phocus, the hot folder you described
-renders anything dropped into the folder its browser shows. It can be driven without touching the GUI:
-set `AutoExport` and `exportDirectory` in its preferences, and point the last entry of
-`ThumbnailsRecent` (macOS bookmarks) at a private folder, because that's the folder Phocus reopens on
-launch. A sidecar dropped in first carries the settings. (One gotcha: macOS wouldn't let Phocus read a
-watch folder under `~/Documents`, so it lives under `~/Pictures`.)
+Two tricks made that practical.
+- **Capture One.** A "probe" profile whose device RGB is read as ROMM RGB gives back the exact camera
+  RGB Capture One hands to a profile.
+- **Phocus.** Your hot-folder setup, sidecar first and raw second, works without touching the GUI. Set
+  `AutoExport` and `exportDirectory` in its preferences, and point the last entry of `ThumbnailsRecent`
+  (macOS bookmarks) at a private folder, because that's the folder Phocus reopens on launch. One gotcha:
+  macOS wouldn't let Phocus read a watch folder under `~/Documents`, so it lives under `~/Pictures`.
 
 The fitted result is a 33³ table from camera RGB to Lab, written as a Capture One camera profile, with
 Capture One's film curve set to Linear Response so the HNCS tone curve lives inside the profile.
@@ -49,122 +68,162 @@ Capture One's film curve set to Linear Response so the HNCS tone curve lives ins
 
 Frames from DPReview's X2D II gallery rendered about 0.5 a\* and 0.5 b\* off from mine on greys, with
 the same profile. Swapping metadata between files one piece at a time narrowed it to maker-note entry
-0x0019, a 512-byte factory record that starts with `GAIN`, carries a date and a calibration-tool
+0x0019. That's a 512-byte factory record that starts with `GAIN`, carries a date and a calibration-tool
 version, and holds two half-floats at bytes 84–87. Mine are 2.600 and 2.260; the DPReview body's are
 2.363 and 2.518. Nothing else in the file mattered, and Phocus doesn't check the record's checksum.
 
-Sweeping those two numbers in synthetic files showed what Phocus does with them: the first is a green
+Sweeping those two numbers in synthetic files showed what Phocus does with them. The first is a green
 gain and the second a blue gain on the camera RGB, roughly kG = (g1/2.60)^0.077 and kB =
-(g2/2.26)^0.078. The effect is small (a 15% change in the stored value moves a channel about 1%), it's
-the same on both lenses, and it barely changes with white balance. Applying it to the DPReview frames
-took their grey offset from −0.52/+0.53 to −0.08/+0.01.
+(g2/2.26)^0.078. The effect is small: a 15% change in the stored value moves a channel about 1%. It's the
+same on every lens and barely changes with white balance. Applying it to the DPReview frames took their
+grey offset from −0.52/+0.53 to −0.08/+0.01.
+
+Your camera gave the formula its first real test. Its record is 2.049 and 2.250, well outside the two I
+had, and it predicts about 1.8% less green. I swapped your record into one of my synthetic files and
+changed nothing else. Phocus moved greys by a\* +1.37 and b\* −0.92, against a predicted +1.41 and
+−0.95, and the whole render matched the prediction to 0.07 ΔE00. On your real raws, rendered in Capture
+One with profiles made for my body:
+
+| your raw | without the correction | with it |
+|---|---|---|
+| 25V f/9 | 1.98 | **0.47** |
+| 55V f/6.3 | 1.79 | **0.51** |
+| 90V f/6.3 | 1.78 | **0.26** |
+| 120 Macro f/8 | 1.33 | **0.16** |
+| 135 f/6.3 | 1.80 | **0.18** |
+
+(Whole frame, median ΔE00 against Phocus with lens corrections on.) Without the correction, everything is
+also 0.4 to 0.6 L\* too bright, because the green gain carries lightness as well as colour.
 
 What this means for anyone building profiles: a profile made on one body carries that body's
-calibration, and Capture One and Lightroom never see the record. Unless your record happens to match mine, your
-DCP probably fits your camera a little better than mine. The repo has a small script that reads any raw's record and prints the
-correction.
+calibration, and Capture One never sees the record. If Lightroom doesn't read it either, your DCP fits
+your camera and would be off by about this much on mine. The repo has a small script that reads any raw's record and prints the
+correction, and the pre-processing step can apply it.
 
 ### What HNCS is made of
 
 Phocus has a film-curve setting in its sidecar, and one value of it renders about a stop brighter. I
 used that difference to ask where the tone curve sits. A single curve applied to each channel of
-**Hasselblad RGB** (the space in Phocus's bundled `Hasselblad RGB.icc`: primaries at xy 0.681/0.314,
-0.212/0.740 and 0.134/0.046, D50 white, gamma 2.2) turns one rendering into the other to 0.31 ΔE00. The same curve in
-ProPhoto only gets to 1.02, and lightness-only or hue-preserving curves are far worse. So HNCS converts
-colour first and applies its tone curve last, per channel, in that space.
+**Hasselblad RGB** turns one rendering into the other to 0.31 ΔE00. That's the space in Phocus's bundled
+`Hasselblad RGB.icc`: primaries at xy 0.681/0.314, 0.212/0.740 and 0.134/0.046, D50 white, gamma 2.2. The
+same curve in ProPhoto only gets to 1.02, and lightness-only or hue-preserving curves are far worse. So
+HNCS converts colour first and applies its tone curve last, per channel, in that space.
 
-Knowing the space accounts for most of the three-dimensional behaviour too. With the tone curve in Hasselblad RGB, a plain matrix
-plus that curve, fitted only on moderate colours, predicts the most saturated patches at 2.2 ΔE00, where
-the same model with the curve in ProPhoto is off by 6.9. Most of what looked like HNCS reshaping
-saturated colours in three dimensions is just the tone curve working in a smaller space. What's left for
-moderate colours is a 3D table: hue, saturation and lightness bins together bring it to 0.37, close to the
-full table's 0.27.
+Knowing the space accounts for most of the three-dimensional behaviour too. With the tone curve in
+Hasselblad RGB, a plain matrix plus that curve, fitted only on moderate colours, predicts the most
+saturated patches at 2.2 ΔE00. The same model with the curve in ProPhoto is off by 6.9. Most of what
+looked like HNCS reshaping saturated colours in three dimensions is just the tone curve working in a
+smaller space. What's left for moderate colours is a 3D table: hue, saturation and lightness bins together
+bring it to 0.37, close to the full table's 0.27.
 
-What does that mean for a DCP? Adobe's pipeline applies its tone curve in
-ProPhoto, holding hue on the largest and smallest channels, and that model fit worst of all (1.83 ΔE00
-for moderate colours, against 1.01 for a per-channel curve in Hasselblad RGB). A DCP can still get close,
-because its LookTable can absorb the difference, but I suspect that's where the hard cases in a DCP fit
-come from.
+What does that mean for a DCP? Adobe's pipeline applies its tone curve in ProPhoto, holding hue on the
+largest and smallest channels. That model fit worst of all: 1.83 ΔE00 for moderate colours, against 1.01
+for a per-channel curve in Hasselblad RGB. A DCP can still get close, because its LookTable can absorb the
+difference, but I suspect that's where the hard cases in a DCP fit come from.
 
 White balance changes the colour stage too. Within daylight it behaves like a colour matrix that shifts
 steadily with temperature, much like a dual-illuminant DNG profile: a 3×3 in front of the daylight table
 takes the warmest grid from 1.06 to 0.37 ΔE00. At tungsten the shift is large enough that I made separate
 profiles.
 
-### Phocus's menus, decoded
+### Your Lightroom post's open items, in Capture One
 
-I couldn't get to Phocus's GUI while doing most of this, so I read the answers out of its code instead.
-The Reproduction tool's **Response** menu is the sidecar's `ColorModel`: Standard 0, Reproduction 1,
-Reproduction Low Gain 4, Negative 5. Values 2 and 3 are skipped. Rendering each confirmed it: 5 inverts
-the picture. Reproduction is a separate rendering built on Standard's colour stage, with lifted shadows
-and about 5% more saturation, and it ignores the film-curve setting. The **Working Space** menu is
-`ColorWorkingSpace`: 0 Hasselblad RGB (the default), 1 Hasselblad L\* RGB. The code knows four more
-values that aren't in the menu, all L\*-encoded with ProPhoto or XYZ primaries. The brighter film-curve
-value I used above is a legacy "As Shot" curve. It's not one of the Response options.
+I ran the things your post flagged in Lightroom through the same synthetic method.
+- **Near-white tones.** Capture One with an HNCS profile doesn't darken them. On a grey ladder through
+  clipping it stays within 0.2 L\* of Phocus up to white, so the compression you measured is
+  Lightroom's.
+- **Pushes.** Exposure works like more light in both apps. A patch pushed +2 EV renders the same as one
+  given four times the raw level: within 0.10 ΔE00 in Phocus, 0.02 in Capture One. So a push adds
+  no difference of its own. It just moves colours up into the bright range, where the next item
+  lives. At +2 EV the median chroma gap is about 1 C\*, the same size as yours. Whether it has the same
+  cause in Lightroom I can't say.
+- **Bright saturated colours.** Cyan matches at every level, right up to clipping. Bright yellows,
+  oranges and yellow-greens didn't, but that was my own doing: the profiles faded colour toward grey above
+  L\* 95, and Phocus keeps saturated yellows at L\* 98. With that fixed, bright yellows went from about 19
+  ΔE00 to 2.4 on test patches. Real yellow regions in DPReview frames went from 4.9 to 1.6 and 3.2 to 0.5.
+  Very saturated magentas still lose 10–20 C\* to the profiles' chroma compression. Reds and pinks go
+  white sooner in Phocus than in Capture One, which happens before any profile.
+- **White balance.** Greys hold everywhere from 4200 to 8000 K. Colourful patches match best near
+  5500 K and drift either side: about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K. Your single matrix stayed within 0.3 ΔE of
+  per-setting fits from 4500 to 8000 K, so some of this may be how Capture One applies white balance
+  rather than Phocus. Three of my real shade frames scored 0.58–0.78, against about 0.5 in daylight.
+- **BaselineExposure.** Capture One applies the tag the same way Phocus does. DPReview frames tagged +1
+  or +2 EV fit as well as untagged ones, with none of Lightroom's extra 0.2 EV.
 
 ### Lens corrections, edges and focus distance
 
-Synthetic flat fields show exactly what Phocus does across the frame. Two things are separate. One is a
-colour shading, less blue toward the edges (about +5 b\* at 60% of the half-diagonal on a mid-grey with
-the 28P), which Phocus applies whether lens corrections are on or off. The other, with corrections on, is
-the vignetting correction: up to about 2 stops in the 28P's corners.
+Synthetic flat fields show exactly what Phocus does across the frame. Two things are separate.
+- **Colour shading.** Less blue toward the edges: about +5 b\* at 60% of the half-diagonal on a mid-grey
+  with the 28P. Phocus applies it whether lens corrections are on or off.
+- **Vignetting correction**, with corrections on: up to about 2 stops in the 28P's corners.
 
-My measurements first showed that correction shrinking for brighter images. That was Capture One. Its Linear Response isn't proportional to the raw values in
-the shadows: it hands a profile 0.17× the raw level at 1% of white and 0.64× at 10%, settling at 0.75×
-above 60%. Converted through that curve, Phocus's correction is a fixed multiplier on the raw values,
-identical at different exposures.
+My measurements first showed that correction shrinking for brighter images. That was Capture One. Its
+Linear Response isn't proportional to the raw values in the shadows: it hands a profile 0.17× the raw level
+at 1% of white and 0.64× at 10%, settling at 0.75× above 60%. Converted through that curve, Phocus's
+correction is a fixed multiplier on the raw values, identical at different exposures.
 
 Phocus also nudges overall brightness by lens setting, on top of its vignetting correction and whether
 corrections are on or off. With the 35-100, a mid-grey renders about half an L\* darker at 50–65 mm than
 at 35 mm f/11; the 28P is a touch brighter at f/4 than at f/8. Capture One doesn't do this, and it turned
 out to be most of the frame-to-frame lightness differences I couldn't explain.
 
-Phocus does change its correction with focus distance, as you found. The camera writes a focus code
-into byte 6 of the lens descriptor (0x0018): 0 at infinity, climbing as you focus closer. Four 55V raws
-at f/2.5 gave me three different vignetting maps, and lined up by that byte they made sense. Writing one
-file's code into another reproduces its map exactly. On the 55V, close focus darkens the centre by about
-a third of an L\* and pushes the correction out toward the edges; on my 28P the corner correction drops by
-up to 0.07 stop; the 35-100 barely moves. One warning if you test this yourself: EXIF SubjectDistance
-doesn't say where these lenses were focused. My clover close-up claims infinity and a distant tree claims
-0.30 m, and picking near and far frames by it is how I first convinced myself focus didn't matter.
+Your focus distance post found that Phocus corrects for focus through its own data, and that it ignores
+both SubjectDistance and the private 0x0081–0x0083 fields. That data is byte 6 of the lens descriptor
+(0x0018): a focus code that's 0 at infinity and climbs as you focus closer. Four 55V raws at f/2.5 gave
+me three different vignetting maps, and lined up by that byte they made sense. Writing one file's code
+into another reproduces its map exactly.
+
+How much it matters depends on the lens. On the 55V, close focus darkens the centre by about a third of an
+L\*. On my 28P, the corner correction drops by up to 0.07 stop. The 35-100 barely moves. Your 90V moves
+most: with corrections on, the correction at 90% of the half-diagonal rises from +0.24 stop at infinity
+to +0.65 at the closest code. The centre and the colour shading don't change. With corrections off,
+focus makes no difference on the 90V. Its edge lift there is +0.15 stop over the centre, close to the
++0.20 between your +0.09 and +0.29 EV. Past the end of a lens's table, Phocus drops the correction
+entirely.
+
+One warning if you test this yourself: SubjectDistance doesn't say where these lenses were focused. My
+clover close-up claims infinity and a distant tree claims 0.30 m. Picking near and far frames by it is how
+I first convinced myself focus didn't matter.
 
 ### Where the lens data lives
 
-You found per-lens shading files in the camera's firmware. Phocus has its own copy. The camera writes a
-34-byte lens identity into two maker-note entries (0x0017 and 0x0018), and Phocus looks everything else up
-internally. Copy just those two entries from a 28P file into a 35-100 file and Phocus gives it the 28P's
-colour shading, edge lift, vignetting correction and brightness. The EXIF lens name doesn't matter at
-all. Break the pair (0x0018 on its own) and Phocus switches lens processing off entirely, which is how I
-found its "no lens" baseline. The tables themselves live in Phocus's 119 MB HBUtil framework, which names
-every XCD lens.
+You found the lens-correction database in the camera's firmware. Phocus has its own copy. The camera
+writes a 34-byte lens identity into two maker-note entries (0x0017 and 0x0018), and Phocus looks
+everything else up internally. Copy just those two entries from a 28P file into a 35-100 file and Phocus
+gives it the 28P's colour shading, edge lift, vignetting correction and brightness. The EXIF lens name
+doesn't matter at all. Break the pair (0x0018 on its own) and Phocus switches lens processing off
+entirely, which is how I found its "no lens" baseline. The tables themselves live in Phocus's 119 MB
+HBUtil framework, which names every XCD lens.
 
 ### Writing the correction into the raw
 
 Because the correction is a fixed multiplier and the raw is uncompressed, the cleanest way to reproduce
 it in Capture One is to do it before Capture One sees the file. A script makes a synthetic flat with the
 lens state of a given raw, has Phocus render it through the hot folder, converts the measured gain
-through Capture One's response curve, and caches a map per lens, focal length, aperture and focus
-distance (52 so far).
-Another writes a corrected copy of each raw. The copy renders with a plain profile, no Light Falloff and
-no LCC:
+through Capture One's response curve, and caches a map per lens, focal length, aperture and focus code
+(57 so far). Another writes a corrected copy of each raw. The copy renders with a plain profile, no Light
+Falloff and no LCC:
 
 | 23 photos not used in fitting, whole frame, median ΔE00 vs Phocus with corrections on | 28P (7) | 35-100 (16) |
 |---|---|---|
 | Corrected copy, plain profile | **0.65** | **0.49** |
 | Profile per lens + colour LCC + Light Falloff 120 | 1.38 | 0.64 |
-| Single profile + Light Falloff 120 | 2.07 | 0.65 |
 
 Adding the lens-setting brightness to the maps took 14 of those frames from a mean of 0.55 to 0.47, with
-their lightness offsets falling from 0.33 to 0.12 L\*. The batch tool now also writes a Capture One
-settings file next to each copy, so it opens with the right profile and Light Falloff 0, and a lens I
-don't own can get its own profile from Phocus renders alone, because Capture One turns each synthetic
-patch into the same camera RGB whatever the lens. My 38V got its profile that way, and nine frames from it
-land 0.35 to 0.53 from Phocus, flat to the corners.
+their lightness offsets falling from 0.33 to 0.12 L\*. The batch tool also writes a Capture One
+settings file next to each copy, so it opens with the right profile and Light Falloff 0.
 
-The error is flat from centre to corner. The cost is a full-size copy of every raw, and some highlight
-headroom in brightened corners. I tried buying that back by darkening the raw and raising
-BaselineExposure. Capture One renders it identically, but it can no longer tell which photosites clipped
-in camera, so a recovered sky gets a hard band. I dropped it.
+A lens I don't own can get its own profile from Phocus renders alone, because Capture One turns each
+synthetic patch into the same camera RGB whatever the lens. Only the raw's metadata is used. My 38V got its
+profile that way, and nine frames from it land 0.35 to 0.53 from Phocus. Your five lenses did too: I gave
+each raw my calibration record first, so the profiles fit my body, and then scored your photos with the
+correction above. They come out flat to the corners as well, though each lens was tested at one setting
+only.
+
+The cost is a full-size copy of every raw, and some highlight headroom in brightened corners. I tried
+buying that back by darkening the raw and raising BaselineExposure. Capture One renders it identically,
+but it can no longer tell which photosites clipped in camera, so a recovered sky gets a hard band. I
+dropped it.
 
 ### Highlights
 
@@ -178,10 +237,11 @@ because it happens before the profile is applied.
 
 ## What I still don't know
 
-I have no 90V raws, so I don't know how far its correction moves with focus. I haven't found what
-`HighlightDesaturation` does, since it changed nothing in my tests. And I have exactly two GAIN
-records, mine and DPReview's -- if yours shows up as another pair of numbers in the same range, the
-formula gets its first independent test.
+- **Phocus version.** Everything here is on Phocus 4.2.2, and you're on 4.2.3. I don't know yet whether
+  HNCS or the lens processing changed between them.
+- **`HighlightDesaturation`.** It changed nothing in my tests.
+- **The shade drift.** I don't know how much of it is Capture One's white balance rather than Phocus.
+- **Very saturated colours.** The profiles still lose some chroma above about C\* 90.
 
-If any of this is useful for your DCP, or you have 90V raws at a few focus distances, I'd love to
-compare notes.
+Thank you for the raws -- they settled two questions I'd written off. If you have frames from another
+body, or 90V frames at a few focus distances to check the maps against, I'd love to compare notes.

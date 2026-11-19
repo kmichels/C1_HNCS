@@ -1332,3 +1332,72 @@ third body, and the first test of the body correction on real photos from many l
   restructured in Round 10. Both now import it normally.
 - Logs: `data/logs/r13_body_test.txt`, `r13_tonal_scores.txt`, `tonal_phocus.txt`; scores in
   `data/val/r13/`.
+
+### Finding 36: the 90V's correction rises steeply with close focus
+
+**In plain terms:** blog.tonalphoto.com's 90V raw made Finding 31's focus sweep possible for that lens.
+Of the lenses measured so far, the 90V moves most with focus, but only at the edges and only with lens
+corrections on. Focused at infinity, Phocus lifts the outer frame by about a quarter stop; at the closest
+focus code, by two thirds of a stop. The centre and the colour shading don't change. With corrections
+off, focus makes no difference.
+
+- Host B0038945 (90V f/6.3, focus code 0), synthetic flat at L\* 30, focus byte set to 0–20;
+  `tools/round14/focus_sweep.py`, read through the E5 XCD90V table. Green gain in stops, relative to the
+  centre:
+
+| focus code | corrections | r 0.4 | r 0.6 | r 0.8 | r 0.9 |
+|---|---|---|---|---|---|
+| 0 | on | +0.057 | +0.118 | +0.188 | +0.240 |
+| 4 | on | +0.071 | +0.149 | +0.246 | +0.275 |
+| 8 | on | +0.083 | +0.178 | +0.303 | +0.381 |
+| 12 | on | +0.095 | +0.207 | +0.381 | +0.534 |
+| 14 | on | +0.101 | +0.222 | +0.426 | +0.654 |
+| 16, 20 | on | +0.034 | +0.076 | +0.139 | +0.147 |
+| 0, 20 | off | +0.034 | +0.076 | +0.139 | +0.147 |
+
+- Codes in between fall in between. Centre L\* is 31.04 at every code. B−G at r 0.9 stays at −0.09.
+- From code 16 up, corrections on renders exactly like corrections off: past the end of the 90V's table,
+  Phocus drops its vignetting correction. The 28P does the same from code 15 (Finding 31).
+- With corrections off, the 90V's edge lift is +0.15 stop at r 0.9 relative to the centre. That fits
+  blog.tonalphoto.com's measurement of +0.09 EV at the centre to +0.29 at the edge against the raw
+  (corrections off, minimum focus, f/8), an edge-over-centre of +0.20. Their edge and aperture
+  differ from mine.
+- Pre-processing maps already key on the focus code. The 90V has only code 0 so far, and
+  `--make-maps` makes the rest. The nearest-code fallback would be off by up to 0.4 stop in the corners
+  at close focus, so for 90V frames, make the maps.
+- Log: `data/logs/r14_focus_90v.txt`.
+
+### Finding 37: the yellow fix on real photos
+
+**In plain terms:** Finding 34's rebuilt profiles were checked on whole real photos in Capture One. On my
+23 validation photos nothing got worse; two 28P frames got better, and the rest are within 0.01. Bright
+saturated yellows are rare in real photos: no region of any of my 120 X2D II raws qualifies, and three of
+DPReview's do, at under 2% of the frame. In those regions the error drops from 4.9 to 1.6 and from 3.2 to
+0.5 ΔE00, with the colour back to Phocus's level.
+
+- Every frame was pre-processed (`preprocess_3fr.py`; `--body-gains` for DPReview's body) and rendered
+  twice in Capture One: once with the old E5 tables (rebuilt from `8532a3b^` as "HNCS E5o"), once with the
+  new. Both were scored against Phocus with corrections on.
+- **23 validation photos, whole frame:** mean of medians 0.506 → 0.495, mean p90 0.997 → 0.987.
+  - B0000919 (28P): 0.38 → 0.23.
+  - B0000916 (28P): 0.67 → 0.59.
+  - No other frame changed by more than 0.01.
+- **Searching for bright yellows** (`tools/round14/find_bright_yellow.py`): blocks whose green raw level
+  is at least 0.55 of white, with blue under half of green and red over 0.6 of green. That's where Phocus's
+  yellows pass L\* 95.
+  - My 120 raws: none.
+  - DPReview's 33: four, the largest at 0.6% of the frame.
+  - blog.tonalphoto.com's five: none.
+- **DPReview frames, scored over blocks where Phocus has L\* above 85, C\* above 40 and hue 50–110°:**
+
+| frame | blocks | old | new | C\* Phocus / old / new |
+|---|---|---|---|---|
+| 0880020828 (100 mm f/11) | 0.45% of frame | 4.94 | **1.58** | 44 / 33 / 48 |
+| 1097831660 (100 mm f/8) | 0.39% | 3.22 | **0.46** | 54 / 41 / 54 |
+| 0041848181 (45 mm f/3.2) | 1.69% | 0.81 | **0.50** | 58 / 58 / 59 |
+
+  The whole frame scores the same either way (0.38, 0.47, 0.36–0.37), because the regions are small.
+- The three maps `auto_maps.py` made for the DPReview frames' lens settings came from another body's
+  raws, so they weren't kept.
+- Logs: `data/logs/r14_real_summary.txt`, `r14_c1_v.txt`, `r14_c1_dp.txt`, `r14_bright_yellow_scan*.txt`;
+  scores in `data/val/r14/`.

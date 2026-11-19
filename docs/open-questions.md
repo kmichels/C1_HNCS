@@ -33,8 +33,9 @@ Everything still open, in one place. Details for the numbered questions are belo
   rendering of the reconstructed range; not obviously possible.)
 - [x] Focus distance on the XCD 55V, where blog.tonalphoto.com saw it: measured from four f/2.5 raws at
   different distances (Finding 31).
-- [ ] 90V focus: a 90V raw is now available (`data/tonal/B0038945`). Sweep byte 6 of 0x0018 on a synthetic
-  flat, as Finding 31 did for the other lenses. blog.tonalphoto.com saw a focus effect on the 90V.
+- [x] 90V focus (Finding 36): with corrections on, the edge correction rises from +0.24 to +0.65 stop at
+  r 0.9 between infinity and the closest code (14). The centre and the colour shading don't change, and
+  focus has no effect with corrections off.
 - [x] 38V E5 profile and maps, from the owner's X2D II raws (Finding 32).
 - [x] 25V, 55V, 90V, 120 Macro and 135 E5 profiles, from blog.tonalphoto.com's X2D II raws (Finding 35).
   Each was tested at one lens setting only.
@@ -63,8 +64,8 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Keep bright yellows and oranges saturated (Finding 34). The colour fade now starts at L\* 100, and
   near-white greys fade from L\* 95. The profile writer no longer runs the fade twice. All seven E5
   profiles were rebuilt. Bright yellows and oranges went from about 19 to 2.4 ΔE00 in Capture One; real
-  held-out frames didn't change. Still to do: whole real photos rendered in Capture One. (E4, built
-  by `fit_anchored.py` with the old rule, was removed instead.)
+  held-out frames didn't change. Real photos confirm it (Finding 37). (E4, built by `fit_anchored.py`
+  with the old rule, was removed instead.)
 - [ ] Very saturated colours above C\* 90 (strong yellow, magenta) still lose 10–20 C\* to the profiles' soft
   chroma compression (`finalize`'s knee at 90, cap 127). The Lab encoding allows more along most hues;
   a knee keyed to the encodable a\*/b\* range would keep more of it.
