@@ -104,8 +104,8 @@ Finding 21) and picked automatically below 4400 K. Shade profiles are fitted on 
 (`auto_lens_profile.py --light shade`, Finding 44) and picked above 6200 K. Their grids sit where real X2D II
 As Shot neutrals do: about 5% lower in red and 6% lower in blue than the ColorMatrix1 daylight locus.
 
-`write_profile.py` writes the table using the ProStandard header and L*-spaced input curves, plus a style
-that sets only the profile and the Linear Response film curve.
+`write_profile.py` writes the table using the ProStandard header and L*-spaced input curves, with the
+lens's LCC colour factor built into the input curves (below).
 
 ## Body calibration
 
@@ -143,8 +143,20 @@ into its settings file for each raw before import (Findings 39 to 42):
    shade one above about 6200 K),
    Linear Response, the lens setting's LCC (copied beside it as `<raw>.<id>.lcc`), exposure for Phocus's
    lens-setting brightness (Finding 27), and white balance as the raw's As Shot multipliers times the LCC's
-   calibration and the body's gains. A settings file needs the image UUID, `Version` and a `VAR` with
-   `ProductID` and its own UUID, or Capture One ignores it.
+   calibration and the body's gains, divided by the lens's colour factor that the profile already applies
+   (step 5). A settings file needs the image UUID, `Version` and a `VAR` with `ProductID` and its own UUID,
+   or Capture One ignores it.
+5. **Build the lens's colour factor into its profiles.** The LCC's colour shift comes from Capture One
+   normalising each channel of the LCC by its own average, which ignores the sensor margin outside the crop,
+   so it can't be cancelled inside the LCC (Finding 47). It is nearly the same for every setting of a lens
+   (28P: red ×1.017–1.020, blue ×0.960–0.965). `bake_lcc_colour.py` writes each lens's average into all its
+   profiles and records it in `fit/lcc_colour.json`. The factor goes into the profile's input curves through
+   Capture One's raw response (`fit/c1_response.npz`), so it acts exactly like a white-balance multiplier: the
+   response has a toe, and a raw multiplier counts for 1.4 to 1.9 times as much in the shadows as the same
+   gain applied after it. Only the small per-setting remainder
+   is then left in the white balance, so choosing another white balance in Capture One keeps the colour
+   right. Without an LCC yet, a lens's factor is estimated from its maps (each channel's mean of 1/map),
+   within about 0.005 of calibration.
 
 `prepare_folder.py` runs all of it for a folder of raws. A lens setting without an LCC gets a radial Light
 Falloff curve from its map instead, which is less accurate.
@@ -176,7 +188,7 @@ offset dominates), and reports the median ΔE00 over the frame and by distance f
 
 **Capture One**
 
-- New profiles and styles need a restart to appear.
+- New profiles need a restart to appear.
 - A settings file applies only to a raw Capture One hasn't seen before.
 - Light Falloff defaults to 100 for XCD lenses.
 - Its distortion-correction default varies from image to image (100 on some, 0 on others).

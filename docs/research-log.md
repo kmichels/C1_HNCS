@@ -1787,3 +1787,100 @@ is better at both, and roughly halves the error at 7500 K.
 - Still open: real shade photos for these six lenses.
 - Logs: `data/logs/r22_shade_build.txt`, `r22_heldout.txt`, `r22_heldout_scores.txt`; held-out pairs in
   `data/synth/r22/`.
+
+### Finding 46: tungsten profiles for every lens
+
+**In plain terms:** `auto_lens_profile.py` can now build a lens's tungsten profile by itself, the same way
+the 28P and 35-100 ones were built by hand in Finding 21. Rebuilt this way, the 35-100's comes out the same
+as the shipped one, so the other six lenses got theirs. On synthetic grids at white balances between the
+fitting ones, the tungsten profiles cut the error under tungsten light two- to fourfold for every lens.
+
+- **`auto_lens_profile.py RAW --light tungsten`**: 22-level grids at Finding 21's four tungsten neutrals
+  (Capture One reads them as about 4175, 3747, 3395 and 3105 K), in a copy of one of the lens's raws with the
+  reference body's record, rendered by Phocus with lens corrections off; Phocus's spatial gain removed with
+  a flat; fitted like every other profile.
+- **Check:** the 35-100 tungsten profile rebuilt from B0000727 matches the shipped table to a median of
+  0.01 ΔE00 (p90 0.02) over the patch lookup's moderate colours, and scores the same on the shipped tungsten
+  pairs. Synthetic fit residual median 1.24, p90 3.4–3.5 for every lens (higher than daylight, as in
+  Finding 21, because Phocus's colour moves more across 1000 K of tungsten than across daylight).
+- **Built** for the 38V (B0001059) and the 25V, 55V, 90V, 120 Macro and 135 (blog.tonalphoto.com's raws).
+- **Held-out grids** (`tools/round21/heldout_grids.py --tungsten`): one 22-level grid per lens halfway, in
+  log space, between the first two and between the last two tungsten grids (t = 0.625 and 1.125). Median
+  ΔE00, C\* 20–40 | C\* 40–60:
+
+| lens | warmer pair, daylight | warmer pair, tungsten | cooler pair, daylight | cooler pair, tungsten |
+|---|---|---|---|---|
+| 28P | 3.28 \| 6.12 | 0.94 \| 1.44 | 1.99 \| 3.39 | 0.87 \| 1.26 |
+| 35-100 | 3.17 \| 5.69 | 0.87 \| 1.36 | 1.85 \| 3.16 | 0.79 \| 1.25 |
+| 38V | 2.90 \| 5.42 | 0.91 \| 1.39 | 1.66 \| 2.73 | 0.81 \| 1.22 |
+| 25V | 3.22 \| 5.70 | 0.90 \| 1.38 | 1.87 \| 3.22 | 0.82 \| 1.27 |
+| 55V | 3.17 \| 5.99 | 0.96 \| 1.44 | 1.86 \| 3.22 | 0.81 \| 1.21 |
+| 90V | 3.16 \| 5.74 | 0.89 \| 1.36 | 1.88 \| 3.15 | 0.81 \| 1.21 |
+| 120 Macro | 3.12 \| 5.83 | 0.84 \| 1.34 | 1.87 \| 3.19 | 0.78 \| 1.24 |
+| 135 | 3.12 \| 5.77 | 0.83 \| 1.33 | 1.89 \| 3.19 | 0.79 \| 1.25 |
+
+  ("Warmer pair" is between the two warmest grids, about 3100–3400 K; "cooler pair" between the two coolest,
+  about 3750–4175 K. Phocus's spatial gain at each patch is left in, the same for both profiles.)
+- `c1_sidecars.py` already picks a lens's Tungsten profile below 4400 K when there is one.
+- Logs: `data/logs/r23_tungsten_build.txt`, `r23_tungsten_check.txt`, `r23_heldout_tungsten.txt`,
+  `r23_heldout_tungsten_scores.txt`; held-out pairs in `data/synth/r23/heldout/`.
+
+### Finding 47: the LCC's colour is built into the profiles, so white balance can be changed
+
+**In plain terms:** Each LCC shifts a photo's overall colour slightly, and the settings file used to cancel
+that through white balance. Choosing a white-balance preset, a Kelvin value or As Shot in Capture One threw
+the correction away, which on the 28P and 55V left greys about 2.5–2.9 ΔE00 off. The shift is nearly the
+same for every setting of a lens, so each lens's average is now built into its profiles, and only a tiny
+per-setting remainder stays in the white balance. On the owner's camera, choosing As Shot now scores the
+same as the prepared photo (0.26–0.64 ΔE00, against 0.61–1.67 before). The styles were removed, because
+a profile with this correction is only right with the LCC.
+
+- **It can't be cancelled inside the LCC.** Capture One normalises each channel of an LCC by its own
+  average. Painting every photosite outside the default crop (3.2% of the sensor) a strong colour changed
+  nothing, to five decimals (`tools/round23/lcc_margin_test.py`), so the margin isn't in that average.
+- **Size of the shift** if the white balance loses it (offline, through each profile; ΔE00 on greys,
+  median | max, and on moderate colours, median): 28P 2.51 | 2.93, 0.88; 55V 2.88 | 3.34, 1.02; 90V 1.85,
+  0.68; 38V 1.58, 0.57; 25V 1.14, 0.37; 35-100 0.92, 0.27; 120 Macro 0.90, 0.33; 135 0.67, 0.24.
+- **The factor per lens** is the mean of its calibrated LCCs (`fit/lcc_colour.json`): 28P red ×1.0189,
+  blue ×0.9623 (9 LCCs, each within 0.003); 35-100 ×1.0018, ×0.9872 (18); 38V ×1.0146, ×0.9763; 25V ×1.0060,
+  ×0.9828; 55V ×1.0219, ×0.9568; 90V ×1.0173, ×0.9720; 120 Macro ×1.0084, ×0.9867; 135 ×1.0057, ×0.9900.
+  A lens without LCCs gets an estimate from its maps: each channel's mean of 1/map, which is what the LCC is
+  normalised by, is within rms 0.003 (red) and 0.005 (blue) of calibration over the 30 calibrated LCCs.
+- **A plain input gain wasn't equivalent.** Built into the profile as a gain at its input, the factor
+  changed real photos even with the white balance divided by the same amount: B0000939 0.44 → 0.59,
+  B0001059 0.37 → 0.50, B0039850 0.54 → 0.44. Capture One does apply the gain (doubling it took B0000939
+  to 0.91, squaring it to 2.02), but white balance multiplies the raw values before Capture One's raw
+  response, whose toe has a local slope of 1.4 to 1.9 in the shadows and about 1.0 from mid-grey up. So a raw
+  multiplier counts for more in dark tones than the same gain after the response.
+- **The fix:** `write_profile.py --raw-gain` builds the factor into the input curves through that response
+  (`fit/c1_response.npz`), so it acts exactly like a raw multiplier. Prepared photos then score as before
+  the change: B0000939 0.44, B0001059 0.37, B0039850 0.53 (0.54), B0000919 0.26 (0.25). Without a gain the
+  profiles still rebuild byte for byte.
+- **Validation:** each photo as prepared, with the white balance set to plain As Shot (what choosing As
+  Shot in Capture One does), and with As Shot as it behaved before (the profile's factor divided out
+  again). Median ΔE00 against Phocus with corrections on:
+
+| photo | lens, As Shot | prepared | As Shot now | As Shot before |
+|---|---|---|---|---|
+| B0000919 | 28P, 6092 K | 0.26 | 0.26 | 1.27 |
+| B0000939 | 28P, 5095 K | 0.44 | 0.38 | 1.67 |
+| B0000633 | 35-100, 6574 K (Shade) | 0.55 | 0.54 | 0.81 |
+| B0000773 | 35-100, 4768 K | 0.60 | 0.64 | 0.61 |
+| B0001059 | 38V, 4924 K | 0.37 | 0.37 | 1.28 |
+| B0039850 | 55V, 5497 K, third body | 0.53 | 1.81 | 1.30 |
+| 2462814331 | 35-100, 3306 K (Tungsten), DPReview body | 1.68 | 1.57 | 1.70 |
+| 5727340084 | 35-100, 3207 K (Tungsten), DPReview body | 0.78 | 1.39 | 1.19 |
+| 8671272247 | 35-100, 3208 K (Tungsten), DPReview body | 1.12 | 1.36 | 1.29 |
+
+- **Other bodies:** their factory-gain correction still rides in the white balance (it differs per camera,
+  and the profiles are shared), so As Shot or a preset drops it there; for the third body that's the
+  1.3–2.0 ΔE00 of Finding 35. The white-balance picker on a grey isn't affected.
+- **Tools:** `bake_lcc_colour.py` writes the factor into every profile of a lens and records it;
+  `c1_sidecars.py` divides it out of each photo's white balance (and, on the fallback without an LCC,
+  cancels it there); `auto_lens_profile.py` bakes new profiles; `prepare_folder.py --make-lccs` replaces a
+  map estimate with the calibrated factor once, and never changes a calibrated one under photos already
+  prepared. The styles are gone, and `write_profile.py` no longer writes them.
+- The tungsten profiles of Finding 46 picked up their lens's factor too. Three new LCCs were made for the
+  DPReview tungsten frames' settings (35-100 at 85, 90 and 100 mm, f/4.5).
+- Logs: `data/logs/r23_margin_test.txt`, `r23_wb_shift_size.txt`, `r23_validate.txt`, `r23_validate2.txt`,
+  `r23_summary.txt`; scores in `data/val/r23/`.

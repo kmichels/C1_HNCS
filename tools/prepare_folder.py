@@ -52,6 +52,11 @@ if no_profile and a.make_profiles:
     no_profile = []
 if a.make_lccs:
     subprocess.run([py, "-I", os.path.join(HERE, "state_lcc.py"), "ensure", *raws, "--lab", a.lab], check=True)
+    # a lens whose LCC colour factor was only estimated from maps gets its calibrated one (Finding 47)
+    r = subprocess.run([py, "-I", os.path.join(HERE, "bake_lcc_colour.py"), "--if-estimated", "--install", "--lens", *by_lens],
+                       check=True, capture_output=True, text=True)
+    if r.stdout.strip() and "installed" in r.stdout:
+        print(r.stdout.strip() + " before importing", flush=True)
 todo = [r for r in raws if profile_name(lens_state(r)[1]) not in no_profile]
 for n in no_profile:
     print(f"{n}: no E5 profile yet; run with --make-profiles ({len(by_lens[n])} raws skipped)")

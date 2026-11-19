@@ -1,8 +1,7 @@
-"""Write a fitted LUT as a Capture One camera ICC (v2.4 scnr RGB->Lab, A2B0 mft2 33^3) and a matching .costyle."""
+"""Write a fitted LUT as a Capture One camera ICC (v2.4 scnr RGB->Lab, A2B0 mft2 33^3)."""
 import argparse
 import os
 import sys
-import uuid
 
 import numpy as np
 
@@ -50,7 +49,10 @@ def main():
     ap.add_argument("lut_npz")
     ap.add_argument("name", help="suffix, e.g. 'HNCS E1'")
     ap.add_argument("outdir")
-    ap.add_argument("--input-gain", default=None, help="r,g,b linear gains applied before the LUT (via the input curves), e.g. to undo an LCC's global colour shift")
+    ap.add_argument("--input-gain", default=None, help="r,g,b linear gains applied before the LUT (via the input curves)")
+    ap.add_argument("--raw-gain", default=None, help="r,g,b gains that act like raw-level multipliers (a white balance "
+                    "factor): applied through Capture One's raw response (fit/c1_response.npz), whose shadow toe makes a "
+                    "raw multiplier count for more in dark tones than the same gain at the profile input (Finding 47)")
     args = ap.parse_args()
 
     z = np.load(args.lut_npz)
@@ -62,7 +64,21 @@ def main():
     pro = InputProfile(IN + "HasselbladX2DII100C-ProStandard.icm")
     x = np.linspace(0, 1, 1025)
     gains = np.array([float(v) for v in args.input_gain.split(",")]) if args.input_gain else np.ones(3)
-    curves = np.stack([np.round(shaper(np.stack([np.clip(x * gains[c] ** (1 / 1.8), 0, 1)] * 3, -1))[:, 0] * 65535).astype(np.uint16) for c in range(3)])
+    raw_gains = np.array([float(v) for v in args.raw_gain.split(",")]) if args.raw_gain else np.ones(3)
+
+    def through(x, c):
+        """Profile-input value x (gamma 1.8) after the channel's input gain and raw-level gain."""
+        lin = x ** 1.8 * gains[c]
+        if raw_gains[c] != 1:
+            rz = np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "fit", "c1_response.npz"))
+            n, v = rz["nominal"], rz["c1"]
+            top = (v[-1] - v[-2]) / (n[-1] - n[-2])
+            raw = np.where(lin <= v[-1], np.interp(lin, v, n), n[-1] + (lin - v[-1]) / top)
+            raw = raw * raw_gains[c]
+            lin = np.where(raw <= n[-1], np.interp(raw, n, v), v[-1] + (raw - n[-1]) * top)
+        return np.clip(lin, 0, 1) ** (1 / 1.8)
+
+    curves = np.stack([np.round(shaper(np.stack([through(x, c)] * 3, -1))[:, 0] * 65535).astype(np.uint16) for c in range(3)])
     m = Mft2(np.eye(3), curves, lab_to_legacy16(lut), np.array([[0, 65535]] * 3, dtype=np.uint16))
     stem = f"HasselbladX2DII100C-{args.name}"
     data = build_profile(
@@ -78,7 +94,7 @@ def main():
     s = rng.random((20000, 3))
     from fit import predict
     a = tetra(back.a2b0, s)
-    b = predict(lut.reshape(-1, 3), np.clip((s ** 1.8 * gains) ** (1 / 1.8), 0, 1))
+    b = predict(lut.reshape(-1, 3), np.stack([through(s[:, c], c) for c in range(3)], 1))
     err = np.abs(a - b).max()
     print(f"wrote {icc_path}; round-trip max |Lab| diff vs finalized LUT {err:.3f}")
 
@@ -86,18 +102,6 @@ def main():
     Ln = tetra(back.a2b0, np.stack([neutral] * 3, -1))[:, 0]
     print(f"neutral L* monotone: {bool(np.all(np.diff(Ln) >= -1e-6))}; L* at device 0.18/0.5/0.9: {np.interp([0.18, 0.5, 0.9], neutral, Ln).round(1)}")
 
-    style = f"""<?xml version="1.0"?>
-<SL Engine="1300">
-	<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />
-	<E K="ICCProfile" V="{stem}.icm" />
-	<E K="Name" V="{args.name}" />
-	<E K="StyleSource" V="Styles" />
-	<E K="UUID" V="{str(uuid.uuid4()).upper()}" />
-</SL>
-"""
-    style_path = os.path.join(args.outdir, f"{args.name}.costyle")
-    open(style_path, "w").write(style)
-    print(f"wrote {style_path}")
 
 
 if __name__ == "__main__":

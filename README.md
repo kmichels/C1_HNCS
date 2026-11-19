@@ -70,14 +70,15 @@ flowchart TD
 You need macOS, Capture One 16.9, Python 3, and Phocus 4.2 for adding new lenses or lens settings.
 
 1. Copy the files in `profiles/` to `~/Library/ColorSync/Profiles/`.
-2. Optionally, copy the files in `styles/` to `~/Library/Application Support/Capture One/Styles/`. You
-   don't need them for new imports. Each one applies a lens's profile to a photo Capture One already
-   knows, but without the lens correction.
-3. Set up the tools:
+2. Set up the tools:
    ```sh
    python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
    ```
-4. Restart Capture One, which only finds new profiles when it starts.
+3. Restart Capture One, which only finds new profiles when it starts.
+
+The profiles are made to be used with the settings files below. Each one includes a small colour
+correction that belongs with its lens's LCC, so choosing one by hand on a photo without the LCC gives a
+slight colour cast.
 
 ## Use
 
@@ -143,13 +144,16 @@ build anything:
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
   rebuild the clipped channel. Capture One can't, and no profile changes that.
 - **White balance.** The daylight profiles match Phocus best from about 4700 to 6200 K. Shade profiles
-  take over above about 6200 K for every lens, and tungsten profiles below about 4400 K for the 28P and
-  35-100 only. Shade profiles for lenses other than the 28P and 35-100 have been checked on synthetic
-  grids, not yet on real shade photos. Mixed light hasn't been tested.
+  take over above about 6200 K and tungsten profiles below about 4400 K, for every lens. Most of them
+  have been checked only on synthetic grids: real photos so far cover the 28P and 35-100 in shade and the
+  35-100 under tungsten. Mixed light hasn't been tested.
 - **Brightness.** Some photos come out slightly brighter or darker than Phocus overall, by up to about
   0.5 L\* (0.03 stop).
-- **If you change white balance** in Capture One, a small colour correction that comes with the lens
-  correction is replaced too, so colours shift slightly from Phocus's.
+- **Changing white balance** in Capture One is fine on the camera the profiles were made on. On another
+  X2D II, a preset, a Kelvin value or As Shot drops that camera's factory-calibration correction, which
+  rides in the white balance (about 1.3–2.0 ΔE00 on the one other camera tested); the white-balance picker
+  on a grey patch doesn't. Lens settings without an LCC get a simpler correction, and changing their white
+  balance shifts colour slightly too.
 - **New photos only.** Capture One applies a settings file only to a photo it hasn't seen yet. It's been
   tested in sessions; catalogs haven't been tested.
 - **Phocus's defaults.** The match is to Phocus's Standard response in its default working space.
@@ -158,8 +162,7 @@ build anything:
 ## Repository layout
 
 ```
-profiles/   Capture One camera profiles ("HNCS E5 <lens>"; E5 is the profile's version)
-styles/     optional styles that apply each profile with Linear Response
+profiles/   Capture One camera profiles ("HNCS E5 <lens>", plus Shade and Tungsten; E5 is the version)
 tools/      prepare_folder.py and the scripts behind it (see tools/README.md)
 fit/        fitted colour tables, lens correction maps, and the data needed to rebuild them
 docs/       how it was measured and everything found along the way
@@ -181,5 +184,5 @@ measurements of Phocus, and for sample raws from five more lenses and another ca
 
 ## License
 
-[MIT](LICENSE) for the profiles, styles, tables, data, tools and docs. The example photographs in
+[MIT](LICENSE) for the profiles, tables, data, tools and docs. The example photographs in
 `docs/images/` are © Scott Walker, all rights reserved.

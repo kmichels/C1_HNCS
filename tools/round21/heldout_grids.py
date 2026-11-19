@@ -2,7 +2,8 @@
 the ColorMatrix1 daylight locus (no off-locus offset, unlike the fitting grids), in a copy of each host raw with
 the reference body's record, rendered by Phocus with lens corrections off and saved as pairs for shade_eval.py.
 
-usage: python heldout_grids.py OUTDIR RAW... [--kelvin 6500,7500]
+usage: python heldout_grids.py OUTDIR RAW... [--kelvin 6500,7500] [--tungsten]
+  --tungsten: instead, grids halfway between Finding 21's tungsten grids (log space), t = 0.625 and 1.125
 """
 import argparse
 import os
@@ -22,6 +23,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("out")
 ap.add_argument("raws", nargs="+")
 ap.add_argument("--kelvin", default="6500,7500")
+ap.add_argument("--tungsten", action="store_true")
 a = ap.parse_args()
 os.makedirs(a.out, exist_ok=True)
 work = tempfile.mkdtemp(prefix="hncs-heldout-")
@@ -30,10 +32,16 @@ try:
     jobs = []
     for raw in a.raws:
         name = profile_name(lens_state(raw)[1])
-        for k in (int(v) for v in a.kelvin.split(",")):
-            tag = f"{name}_L{k}"
+        if a.tungsten:
+            import numpy as np
+            st = [np.load(os.path.join(TOOLS, "..", "fit", "synthetic", "pairs", f"HNCStungA{i}.npz"))["neutral"] for i in (1, 2, 3, 4)]
+            targets = [("T12", np.sqrt(st[0] * st[1])), ("T34", np.sqrt(st[2] * st[3]))]
+        else:
+            targets = [(f"L{k}", daylight_neutral(raw, k)) for k in (int(v) for v in a.kelvin.split(","))]
+        for k, nt in targets:
+            tag = f"{name}_{k}"
             p = os.path.join(work, tag + ".3fr")
-            n = ",".join(f"{v:.5f}" for v in daylight_neutral(raw, k))
+            n = ",".join(f"{v:.5f}" for v in nt)
             subprocess.run([py, "-I", os.path.join(TOOLS, "make_synthetic_raw.py"), raw, p, "--neutral", n,
                             "--uid", f"HNCSHO{k}{name}".replace("-", "")[:16].ljust(16, "0")], check=True, capture_output=True)
             set_landscape(p)

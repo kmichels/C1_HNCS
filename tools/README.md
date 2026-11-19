@@ -42,7 +42,8 @@ flowchart TD
 |---|---|
 | `prepare_folder.py FOLDER [--make-maps] [--make-profiles] [--make-lccs] [--lab DIR] [--force]` | Everything below for a folder of raws, then a settings file per raw |
 | `auto_maps.py RAW… [--maps DIR]` | Phocus's lens correction map for every lens setting among the raws that doesn't have one (Phocus, about 25 s each) |
-| `auto_lens_profile.py RAW… [--name N] [--install] [--light shade]` | A colour profile and style for a lens from any of its raws, using only Phocus (about 5 minutes); `--light shade` makes its shade version |
+| `auto_lens_profile.py RAW… [--name N] [--install] [--light shade\|tungsten]` | A colour profile for a lens from any of its raws, using only Phocus (about 5 minutes); `--light` makes its shade or tungsten version |
+| `bake_lcc_colour.py [--lens NAME…] [--install]` | Builds each lens's LCC colour factor into all its profiles and records it in `fit/lcc_colour.json` (run after making LCCs for a new lens) |
 | `state_lcc.py ensure RAW…` | An LCC for every lens setting among the raws that doesn't have one, made and calibrated in Capture One (about 1.5 minutes each) |
 | `state_lcc.py make HOST MAP` / `calibrate HOST MAP` | The two halves of `ensure`, for one map |
 | `state_lcc.py clean` | Remove the test raws `state_lcc.py` left in the lab session (quit Capture One first) |
@@ -75,7 +76,7 @@ ignores the file.
 | `make_preprocess_map.py FLAT_GAIN FLAT.3fr DIR` | Raw-domain lens correction map for a lens setting, from Phocus's render of a synthetic flat |
 | `save_synth_pairs.py PATCHES C1_PROBE.tif PHOCUS.tif OUT.npz` | Save a grid's pairs (the `fit/synthetic/pairs/` format) so the renders can be deleted |
 | `fit_synthetic.py OUT --gainmap MAP --pairs PAIRS.npz … [--synth NAME:PATCHES:C1.tif:PHOCUS.tif]` | Fit a table from saved pairs or from renders, and score it on real pairs |
-| `write_profile.py LUT.npz NAME OUTDIR [--input-gain r,g,b]` | Table → `HasselbladX2DII100C-<Name>.icm` plus `<Name>.costyle` |
+| `write_profile.py LUT.npz NAME OUTDIR [--raw-gain r,g,b]` | Table → `HasselbladX2DII100C-<Name>.icm`; `--raw-gain` builds in per-channel gains that act like white-balance multipliers |
 | `makernote_transplant.py TARGET DONOR OUT TAGS` | Copy maker-note entries between raws (to find what Phocus reads) |
 
 `fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
@@ -149,7 +150,7 @@ use or rebuild the profiles. Scripts for the earlier real-photo profiles (`pair_
 - Name the recipe in `process c recipe "…"`; without it Capture One uses whatever recipes are enabled.
 - `process` returns immediately. Poll the output folder until the file sizes stop changing.
 - `job` is a dictionary class, so `set job to process …` won't compile.
-- New profiles and styles appear only after restarting Capture One.
+- New profiles appear only after restarting Capture One.
 - Capture One lists newly copied files slowly. Wait until it lists them before scripting against them.
 - Reset adjustments turns distortion correction back on. Turn it off when comparing pixel-for-pixel
   with a Phocus export that only corrected vignetting, or fine texture will look like colour error.

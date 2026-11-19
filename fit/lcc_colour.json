@@ -1,0 +1,42 @@
+{
+ "28P": {
+  "kB": 0.9623,
+  "kR": 1.0189,
+  "source": "calibrated from 9 LCCs"
+ },
+ "35-100": {
+  "kB": 0.98715,
+  "kR": 1.0018,
+  "source": "calibrated from 18 LCCs"
+ },
+ "38V": {
+  "kB": 0.97635,
+  "kR": 1.01459,
+  "source": "calibrated from 1 LCC"
+ },
+ "XCD120": {
+  "kB": 0.98668,
+  "kR": 1.00836,
+  "source": "calibrated from 1 LCC"
+ },
+ "XCD135": {
+  "kB": 0.98996,
+  "kR": 1.00565,
+  "source": "calibrated from 1 LCC"
+ },
+ "XCD25V": {
+  "kB": 0.98282,
+  "kR": 1.00596,
+  "source": "calibrated from 1 LCC"
+ },
+ "XCD55V": {
+  "kB": 0.95676,
+  "kR": 1.0219,
+  "source": "calibrated from 1 LCC"
+ },
+ "XCD90V": {
+  "kB": 0.97204,
+  "kR": 1.01731,
+  "source": "calibrated from 1 LCC"
+ }
+}

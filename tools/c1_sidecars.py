@@ -5,9 +5,12 @@ For each raw, from its lens setting (lens, focal length, aperture, focus code):
   - when that setting has a calibrated LCC (data/lcc_c1/<map key>.lcc and .json, made by state_lcc.py):
       the "HNCS E5 <lens>" profile, Linear Response, the LCC with colour cast and uniform light on (it carries
       Phocus's whole 2-D correction, so Light Falloff is off), and exposure and white balance that cancel the
-      LCC's overall colour shift and add Phocus's lens-setting brightness;
+      LCC's overall colour shift and add Phocus's lens-setting brightness. The lens's typical colour shift is
+      built into its profiles (bake_lcc_colour.py, fit/lcc_colour.json), so the white balance only carries this
+      setting's small remainder, and choosing another white balance in Capture One keeps the colour right;
   - otherwise a fallback: Phocus's correction as a radial Light Falloff curve, which can't follow its
-    elliptical shape or colour shading (make the LCC with prepare_folder.py --make-lccs);
+    elliptical shape or colour shading (make the LCC with prepare_folder.py --make-lccs), and a white balance
+    that cancels the colour shift built into the profile;
   - under tungsten light (As Shot below about 4400 K) the lens's "Tungsten" profile, and in shade (above about
     6200 K) its "Shade" profile, where there is one;
   - the body's factory calibration (maker note 0x0019), as exposure and white balance relative to the body
@@ -38,6 +41,15 @@ HALF_DIAG_UM = np.hypot(11656, 8742) / 2 * 3.76
 TUNGSTEN_BELOW_K = 4400                                # daylight profiles fit ~4700-6300 K, tungsten ~3100-4200 K
 SHADE_ABOVE_K = 6200                                   # shade profiles fit ~6300-8600 K and beat daylight from ~6200 K
 BODY_REF = (2.600, 2.260)                              # GAIN record of the body the profiles were fitted on
+COLOUR = os.path.join(FIT, "lcc_colour.json")          # each lens's LCC colour factor, built into its profiles
+
+
+def baked_colour(name, profile):
+    """The LCC colour factor (kR, 1, kB) built into PROFILE, if it is one of lens NAME's HNCS profiles."""
+    if not profile.startswith("HasselbladX2DII100C-HNCS E5 ") or not os.path.exists(COLOUR):
+        return np.ones(3)
+    c = json.load(open(COLOUR)).get(name)
+    return np.array([c["kR"], 1.0, c["kB"]]) if c else np.ones(3)
 
 
 def lcc_id(map_path):
@@ -168,6 +180,7 @@ def main():
         profile = profile_for(name, raw)
         if a.profile:
             profile = a.profile
+        gains = gains / baked_colour(name, profile)   # the profile already applies the lens's typical LCC colour
 
         ev += float(np.log2(gains[1]))
         wb = gains / gains[1]
