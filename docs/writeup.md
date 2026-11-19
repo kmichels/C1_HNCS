@@ -141,8 +141,10 @@ I ran the things your post flagged in Lightroom through the same synthetic metho
   oranges and yellow-greens didn't, but that was my own doing: the profiles faded colour toward grey above
   L\* 95, and Phocus keeps saturated yellows at L\* 98. With that fixed, bright yellows went from about 19
   ΔE00 to 2.4 on test patches. Real yellow regions in DPReview frames went from 4.9 to 1.6 and 3.2 to 0.5.
-  Very saturated magentas still lose 10–20 C\* to the profiles' chroma compression. Reds and pinks go
-  white sooner in Phocus than in Capture One, which happens before any profile.
+  Very saturated colours had a similar limit of my own making. The profiles squeezed chroma above 90, but
+  the Lab encoding only limits a\* and b\* to about ±128 each. Compressing near that limit instead took
+  colours above C\* 90 from 2.2 to 0.4 ΔE00. Reds and pinks go white sooner in Phocus than in Capture One,
+  which happens before any profile.
 - **White balance.** Greys hold everywhere from 4200 to 8000 K. Colourful patches match best near
   5500 K and drift either side: about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K. Your single matrix stayed within 0.3 ΔE of
   per-setting fits from 4500 to 8000 K, so some of this may be how Capture One applies white balance
@@ -241,7 +243,6 @@ because it happens before the profile is applied.
   HNCS or the lens processing changed between them.
 - **`HighlightDesaturation`.** It changed nothing in my tests.
 - **The shade drift.** I don't know how much of it is Capture One's white balance rather than Phocus.
-- **Very saturated colours.** The profiles still lose some chroma above about C\* 90.
 
 Thank you for the raws -- they settled two questions I'd written off. If you have frames from another
 body, or 90V frames at a few focus distances to check the maps against, I'd love to compare notes.

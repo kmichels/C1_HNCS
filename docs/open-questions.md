@@ -66,11 +66,23 @@ Everything still open, in one place. Details for the numbered questions are belo
   profiles were rebuilt. Bright yellows and oranges went from about 19 to 2.4 ΔE00 in Capture One; real
   held-out frames didn't change. Real photos confirm it (Finding 37). (E4, built by `fit_anchored.py`
   with the old rule, was removed instead.)
-- [ ] Very saturated colours above C\* 90 (strong yellow, magenta) still lose 10–20 C\* to the profiles' soft
-  chroma compression (`finalize`'s knee at 90, cap 127). The Lab encoding allows more along most hues;
-  a knee keyed to the encodable a\*/b\* range would keep more of it.
+- [x] Very saturated colours (Finding 38). The profiles now compress only where a\* or b\* nears the Lab
+  encoding's limit of about ±128, from 110, instead of chroma above 90. Colours above C\* 90 went from 2.2
+  to 0.4 ΔE00 in Capture One; above C\* 130 they still run 9–13 C\* short.
 - [ ] Shade profiles, like the tungsten ones: E5 fitted on 7000–8000 K grids ("HNCS E5 … Shade"). Worth
   it if shade frames matter; synthetic colours drift to about 2 ΔE00 at 8000 K (Finding 33).
+- [ ] Pre-processing without copies, using only Capture One's own settings. Capture One's `.cos` settings
+  file stores the light-falloff curve inline (`LensLightFallOff` = radius µm, EV pairs, up to 16; then
+  amount and on/off). The batch tool could write each original raw a curve made from Phocus's map for
+  its lens, aperture and focus code, plus an exposure offset, and use a per-body profile. Steps:
+  - check that Capture One uses a curve written into the settings file;
+  - check that falloff is applied in linear raw space;
+  - find whether the settings file can also carry an LCC (colour shading is one channel more than the
+    curve can hold);
+  - score original raw + settings file against pre-processing on the validation photos.
+  Editing Capture One's lens database instead (`lensDatabase.cdx`, XML XORed with 0x81) would be fragile:
+  it's inside the signed app, updates overwrite it, and Capture One picks focus entries by SubjectDistance,
+  which is wrong on X2D II files.
 
 **Validation and writing**
 - [x] Check on photos not used in fitting: 23 frames (Finding 24). Still worth a look: new photos in

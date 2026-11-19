@@ -14,11 +14,13 @@ from tetra import tetra  # noqa: E402
 IN = "/Applications/Capture One.app/Contents/Frameworks/ImageProcessing.framework/Versions/A/Resources/Profiles/Input/"
 
 
-def finalize(raw, knee=90.0, cmax=127.0, fade_start=95.0, grey_fade_start=None, grey_chroma=20.0):
+def finalize(raw, knee=90.0, cmax=127.0, fade_start=95.0, grey_fade_start=None, grey_chroma=20.0, limit="chroma"):
     """Make the fitted LUT storable and well-behaved where there was no data:
     L* clipped to [0, 100] with chroma fading out over the 10 L* above fade_start, then soft-compressed chroma.
     With grey_fade_start, near-neutral nodes (C* under grey_chroma) also fade from that L*: Phocus's white is neutral,
-    and the fit has no unclipped data there, while saturated colours near L* 98 keep their chroma."""
+    and the fit has no unclipped data there, while saturated colours near L* 98 keep their chroma.
+    limit "chroma" compresses C* above knee toward cmax; "box" compresses max(|a*|, |b*|) instead, hue kept,
+    which is what the legacy Lab encoding (each of a*, b* within -128..128) actually limits."""
     lut = raw.copy()
     L = np.clip(lut[..., 0], 0, 100)
     a, b = lut[..., 1], lut[..., 2]
@@ -30,7 +32,12 @@ def finalize(raw, knee=90.0, cmax=127.0, fade_start=95.0, grey_fade_start=None, 
         over = np.maximum(over, np.clip((raw[..., 0] - grey_fade_start) / 10.0, 0, 1) * greyish)
     C = C * (1 - over)
     span = cmax - knee
-    C = np.where(C > knee, knee + span * np.tanh((C - knee) / span), C)
+    if limit == "box":
+        m = C * np.maximum(np.abs(np.cos(h)), np.abs(np.sin(h)))
+        m2 = np.where(m > knee, knee + span * np.tanh((m - knee) / span), m)
+        C = C * np.where(m > 0, m2 / np.maximum(m, 1e-9), 1.0)
+    else:
+        C = np.where(C > knee, knee + span * np.tanh((C - knee) / span), C)
     lut[..., 0] = L
     lut[..., 1] = C * np.cos(h)
     lut[..., 2] = C * np.sin(h)

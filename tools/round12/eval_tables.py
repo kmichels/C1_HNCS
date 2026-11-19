@@ -60,6 +60,8 @@ for path in sys.argv[2:]:
             m = gm & bm & (sat >= 0.6)
             row += f"  {b} {med(d[m]):5.2f} (dC* {med(C(lab[m]) - C(ph[m])):+6.1f})"
         print(row)
+    vs = ok & (sat > 0) & (lev < 1) & (C(ph) > 90)
+    print(f"  very saturated (Phocus C* > 90, {int(vs.sum())}): dE00 {med(d[vs]):.2f} p90 {np.percentile(d[vs], 90):.2f}; dC* {med(C(lab[vs]) - C(ph[vs])):+.1f}")
     m = ok & (sat > 0) & (lev < 1)
     print(f"  all colours the probe can score ({int(m.sum())}): {med(d[m]):.2f}, p90 {np.percentile(d[m], 90):.2f}")
     per = [med(de2000(f["W"] @ lut, f["lab"])) for f in fr]

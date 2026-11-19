@@ -93,7 +93,9 @@ That leaves about 34,000–41,000 blocks per frame.
   never appeared in the training frames still get something sensible.
 - **Storable range**: Lab in the profile must sit in L* 0–100 and chroma within the encoding. Nodes
   outside are pinned to clipped values and the fit is re-solved around them, so the clipping doesn't put
-  kinks next to real data. Chroma is soft-compressed above 90. It fades to neutral above table L* 100,
+  kinks next to real data. The encoding limits a* and b* separately (about ±128 each), so where either
+  passes 110 the two are soft-compressed together toward that limit, keeping the hue; until Finding 38
+  chroma was compressed above C* 90, which capped it near 117. Chroma fades to neutral above table L* 100,
   and for near-neutral nodes (C* under 6) from L* 95, so whites stay clean. Phocus keeps saturated
   yellows at L* 98, so those keep their colour. Until Finding 34 everything faded from L* 95, and the
   profile writer applied the fade twice; E4 was built that way.

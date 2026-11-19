@@ -99,9 +99,9 @@ profiles), use **As Shot** white balance, and edit as usual afterwards.
   than Phocus, and Phocus's per-lens-setting brightness (up to about ±0.5 L\* on the 35-100 between 45
   and 75 mm) isn't included. About ±0.2 L\* per frame remains unexplained in every route.
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
-  rebuild the clipped channel; Capture One can't, and no profile can change that. Below clipping, very
-  saturated colours (above about C\* 90, such as a strong yellow) come out 10–20 C\* less saturated than
-  in Phocus.
+  rebuild the clipped channel; Capture One can't, and no profile can change that. Below clipping, only
+  the most saturated colours (above about C\* 130, beyond most real scenes) come out a little less
+  saturated than in Phocus.
 - **Phocus defaults only.** The match is to Phocus's Standard response in its default working space.
 
 More in [docs/open-questions.md](docs/open-questions.md).

@@ -1401,3 +1401,49 @@ DPReview's do, at under 2% of the frame. In those regions the error drops from 4
   raws, so they weren't kept.
 - Logs: `data/logs/r14_real_summary.txt`, `r14_c1_v.txt`, `r14_c1_dp.txt`, `r14_bright_yellow_scan*.txt`;
   scores in `data/val/r14/`.
+
+### Finding 38: the profiles keep Phocus's most saturated colours
+
+**In plain terms:** The profiles used to squeeze every colour above C\* 90 toward a ceiling of about 117.
+The Lab encoding inside a Capture One profile doesn't limit chroma, though. It limits a\* and b\*
+separately, each to about ±128, which allows chroma up to about 180 along diagonal hues. Phocus's
+synthetic patches reach C\* 175. The rebuilt profiles compress only where a\* or b\* nears that limit,
+starting at 110, and keep the hue. Very saturated colours went from 2.2 to 0.4 ΔE00 in Capture One, and the
+fit's own error halved. Greys, moderate colours and real photos are unchanged.
+
+- `finalize` has a new `limit="box"` mode: it soft-compresses max(|a\*|, |b\*|) from a knee toward the cap,
+  scaling a\* and b\* together. `fit_synthetic.py` now defaults to `--limit box --knee 110 --cmax 127.5`.
+  The old behaviour is `--limit chroma --knee 90 --cmax 127`.
+- **35-100 variants, offline** (`tools/round12/eval_tables.py`; ladder patches the probe can score):
+
+| limit | synthetic fit residual (median / p90) | very saturated (Phocus C\* > 90) | bright yellow-orange, 0.59–0.84 | all colours p90 | real held-out |
+|---|---|---|---|---|---|
+| chroma, knee 90 (before) | 1.39 / 5.71 | 1.33 | 1.89 | 2.92 | 0.630 |
+| chroma, knee 110 | 0.85 / 4.37 | 0.51 | 0.62 | 1.83 | 0.630 |
+| box, knee 100 | 0.78 / 2.97 | 0.47 | 0.80 | 1.76 | 0.630 |
+| **box, knee 110** | **0.68 / 2.59** | **0.33** | **0.44** | **1.39** | **0.630** |
+
+- **Capture One renders against Phocus**, old 35-100 profile against the new one (median ΔE00, by
+  Phocus chroma):
+
+| raw | C\* 0–40 | C\* 40–90 | C\* 90–130 | C\* 130+ |
+|---|---|---|---|---|
+| ladder (Finding 33) | 0.31 → 0.31 | 0.34 → 0.34 | 2.20 → **0.43** | 7.24 → **1.34** |
+| full-gamut grid, 5500 K | 0.44 → 0.44 | 0.50 → 0.49 | 1.63 → **0.37** | 7.17 → **2.75** |
+
+  No patch got worse by more than 1 ΔE00; 103 and 229 improved by more than 1. The grid's median went
+  from 1.29 to 0.47. Above C\* 130 the new profile still runs 9–13 C\* short.
+- **Rebuilt, synthetic residual median / p90:**
+  - 35-100: 1.39 / 5.71 → 0.68 / 2.59.
+  - 28P: 1.42 / 5.73 → 0.76 / 2.62.
+  - Tungsten 35-100 and 28P: about 2.0 / 5.4 → 1.24 / 3.5.
+  - 38V, 25V, 55V, 90V, 120 Macro and 135, rebuilt through Phocus by `auto_lens_profile.py`: 0.68 /
+    2.5–2.6 each (the 38V was 1.38 / 5.48 after Finding 34).
+  - All seven pair-built profiles and the six lens profiles are installed under the same names.
+- **Real photos**, pre-processed and rendered with the Finding 34 profiles and the new ones:
+  - 23 validation photos: mean of medians 0.495 → 0.496. No frame moved by 0.02.
+  - DPReview frames (body gains applied), blocks where Phocus has C\* above 90: 0.78 → 0.57 (0.24% of
+    the frame), 0.80 → 0.61 (4.4%) and 0.50 → 0.42 (0.04%). Chroma now matches Phocus.
+  - Colours that saturated are uncommon in real scenes, and real ones rarely go far past C\* 100.
+- Logs: `data/logs/r15_chroma_35100.txt`, `r15_c1_check.txt`, `r15_real_summary.txt`, `r15_phocus.txt`;
+  scores in `data/val/r15/`.
