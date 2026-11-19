@@ -1447,3 +1447,62 @@ fit's own error halved. Greys, moderate colours and real photos are unchanged.
   - Colours that saturated are uncommon in real scenes, and real ones rarely go far past C\* 100.
 - Logs: `data/logs/r15_chroma_35100.txt`, `r15_c1_check.txt`, `r15_real_summary.txt`, `r15_phocus.txt`;
   scores in `data/val/r15/`.
+
+### Finding 39: Capture One's own settings can do most of pre-processing, but only radially
+
+**In plain terms:** Instead of writing a corrected copy of every raw, the batch tool can write a Capture
+One settings file for the original. The file carries Phocus's correction as a light-falloff curve, the
+lens's colour shading as an LCC, and the lens-setting brightness as exposure. Capture One honours all of
+it, and on flat fields it reproduces Phocus's correction to within 0.01 stop. On real photos it lands
+between pre-processing and the old LCC route: 0.58 ΔE00 on the 35-100 (pre-processing 0.48) and 0.93 on
+the 28P (0.54). The gap is geometry. A falloff curve is a function of radius only, and Phocus's
+correction isn't radially symmetric. On the 28P it's up to 0.19 stop stronger on the left than at the top
+at the same radius.
+
+- **Test A: a curve in the settings file is used** (`tools/round16/falloff_sidecar_test.py`).
+  - `LensLightFallOff` holds `radius µm,EV;…|amount|enabled`, up to 16 points.
+  - A hand-written curve in a new raw's `.cos` was kept and applied.
+  - In raw terms the correction matched the curve within 0.01 stop (+0.24/+0.49/+0.74/+0.92 stop at
+    7/14/21/26 mm, for a curve of 0.25/0.50/0.75/0.93).
+- **Test B: it's applied in linear raw space.**
+  - Flats at L\* 10, 30 and 60 got the same raw-domain correction to 0.003 stop.
+  - In Capture One's own output the gain varies widely with level, so the curve acts before the
+    Linear Response, where pre-processing applies its gain.
+- **Test C: the settings file can carry an LCC** (`tools/round16/lcc_sidecar_test.py`).
+  - `create LCC` / `apply LCC` (AppleScript) store an applied LCC as `<image>.<LccID>.lcc` beside the
+    `.cos`. The copy is byte-identical to the reference's, and the `.cos` `<AL>` block gets
+    `ColorCastCorrection`, `LccID`, `LensLccLightFalloff` (uniform light) and its amount.
+  - A hand-written `.cos` with those keys and a copied `.lcc` applied the LCC (colour cast on, uniform
+    light off) together with a custom falloff curve.
+  - Measured blue-minus-green followed the LCC's colour map within 0.002 stop.
+  - The `.lcc` records the reference raw's camera serial number, so the LCC files stay in `data/lcc_c1/`.
+- **`tools/c1_sidecars.py`** writes such a file for each raw from its map:
+  - the green gain as a 14-point radial curve;
+  - the lens's LCC with its "E5 … LCC" profile;
+  - the lens-setting brightness as `Exposure`.
+  On a 28P f/4 flat it reproduced the map's radial profile within 0.005 stop for green and 0.01 for
+  blue and red relative to green, unchanged from L\* 10 to 60. Only corners brightened past white clip,
+  as with pre-processing.
+- **23 validation photos**, whole frame against Phocus with corrections on (`data/logs/r16_native_summary.txt`):
+
+| lens | pre-processed copy | original + settings file | old LCC route (Finding 24) |
+|---|---|---|---|
+| 28P (7) | **0.54** | 0.93 | 1.38 |
+| 35-100 (16) | **0.48** | 0.58 | 0.64 |
+
+  The extra error grows outward from r 0.2. On the 28P it shows as +0.2 to +0.5 L\* in the mid-frame.
+- **Why.** At the same radius the maps differ by direction (`data/logs/r16_map_asymmetry.txt`):
+
+| map | rms / max departure from radial (stops) | r 0.6, left / right / top / bottom minus mean |
+|---|---|---|
+| 28P f/4 | 0.059 / 0.187 | +0.11 / +0.04 / −0.07 / −0.08 |
+| 28P f/8 | 0.060 / 0.190 | +0.11 / +0.03 / −0.06 / −0.07 |
+| 35-100 35 mm f/8 | 0.041 / 0.143 | +0.07 / +0.06 / −0.04 / −0.09 |
+| 35-100 100 mm f/8 | 0.021 / 0.066 | +0.03 / +0.01 / 0.00 / −0.04 |
+
+  Stronger along the long side and a little stronger on the left: an elliptical, slightly off-centre
+  correction. A radial curve can only follow the average around each ring.
+- **What would close it:** a second LCC with uniform light on, carrying the non-radial part, per lens
+  setting. That's one Capture One-made LCC per map (57 so far). Uniform light rescales to the frame's
+  mean (the exposure key can undo that), and its response to a reference hasn't been measured; the
+  colour LCC's was (mean / reference)^1.14.

@@ -135,6 +135,8 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `round11/` | Finding 33: bright-colour and exposure-push ladder (`make_ladder.py`), white-balance grids from a Kelvin (`make_wb_grids.py`, `cct.py`), Phocus and Capture One renders (`render_phocus.py`, `render_c1.applescript`, `render_real.applescript`), and `analyze.py`; run from `data/synth/r11/` |
 | `round12/eval_tables.py PAIRS_DIR LUT…` | Finding 34: score tables offline, through Capture One's camera RGB for the round-11 ladder (a probe render in `data/synth/r11/probe/`) and on real held-out pairs |
 | `round13/body_test.py KG KB` | Finding 35: Phocus's change when another body's GAIN record is swapped into the round-11 ladder, against `body_gains.py`'s prediction |
+| `c1_sidecars.py RAW… [--dest DIR]` | Finding 39: a Capture One settings file per original raw (falloff curve from its map, colour LCC, exposure), instead of a corrected copy |
+| `round16/` | Finding 39: settings-file tests (falloff curve used? applied in raw space? LCC carried?) |
 
 `fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
 `fit/synthetic/flat_maps/` the flat-field gain maps, so E5 can be refitted without Phocus.

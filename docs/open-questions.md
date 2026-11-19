@@ -71,7 +71,10 @@ Everything still open, in one place. Details for the numbered questions are belo
   to 0.4 ΔE00 in Capture One; above C\* 130 they still run 9–13 C\* short.
 - [ ] Shade profiles, like the tungsten ones: E5 fitted on 7000–8000 K grids ("HNCS E5 … Shade"). Worth
   it if shade frames matter; synthetic colours drift to about 2 ΔE00 at 8000 K (Finding 33).
-- [ ] Pre-processing without copies, using only Capture One's own settings. Capture One's `.cos` settings
+- [ ] Pre-processing without copies, using only Capture One's own settings. Tested (Finding 39):
+  `tools/c1_sidecars.py` works and Capture One honours it, but a radial falloff curve can't follow
+  Phocus's elliptical correction (0.93 vs 0.54 on the 28P, 0.58 vs 0.48 on the 35-100). Next: a
+  uniform-light LCC per lens setting for the non-radial part. Original plan: Capture One's `.cos` settings
   file stores the light-falloff curve inline (`LensLightFallOff` = radius µm, EV pairs, up to 16; then
   amount and on/off). The batch tool could write each original raw a curve made from Phocus's map for
   its lens, aperture and focus code, plus an exposure offset, and use a per-body profile. Steps:
