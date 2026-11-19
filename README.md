@@ -14,22 +14,25 @@ from Phocus over the whole frame (ΔE00). None of these frames were used in fitt
 
 This is a personal project. It's not affiliated with Hasselblad or Capture One.
 
-## Three ways to use it
+## Two ways to use it
 
-| | **Pre-processed + HNCS E5** (closest) | HNCS E5 + LCC | HNCS E4 (simplest) |
-|---|---|---|---|
-| What | a corrected copy of each raw, rendered with a per-lens profile | a per-lens profile plus a colour LCC per lens | one profile for every lens |
-| Whole frame vs Phocus with corrections on, 23 unseen photos (28P / 35-100) | **0.65 / 0.49** | 1.38 / 0.64 | 2.07 / 0.65 |
-| Needs | Python, and Phocus for lens settings not yet measured | an LCC reference per lens | nothing extra |
-| Lenses | 28P, 35-100 and 38V built in; others built automatically from your raws | 28P and 35-100 | any |
+| | **Pre-processed + HNCS E5** (closest) | HNCS E5 + LCC |
+|---|---|---|
+| What | a corrected copy of each raw, rendered with a per-lens profile | a per-lens profile plus a colour LCC per lens |
+| Whole frame vs Phocus with corrections on, 23 unseen photos (28P / 35-100) | **0.65 / 0.49** | 1.38 / 0.64 |
+| Needs | Python, and Phocus for lens settings not yet measured | an LCC reference per lens |
+| Lenses | 28P, 35-100 and 38V built in; others built automatically from your raws | 28P and 35-100 |
+
+Each E5 profile is made for one lens. For another lens, `preprocess_folder.py --make-profiles` (or
+`tools/auto_lens_profile.py`) builds one from your raws with Phocus.
 
 Pre-processing writes Phocus's lens correction, colour shading and per-lens-setting brightness (lens,
 focal length, aperture and focus distance) into a copy of the raw, so Capture One needs no LCC and no
 Light Falloff. The 28P's corners, which the profile-only routes can't match at f/5.6 and narrower, come
 out right. Your originals are only read. Details and numbers: [docs/results.md](docs/results.md).
 
-All three have daylight profiles (about 4700–6300 K); E5 also has **tungsten** versions (about
-3100–4200 K) for the 28P and 35-100.
+The profiles are fitted for daylight (about 4700–6300 K). The LCC route also has **tungsten** versions
+(about 3100–4200 K) for the 28P and 35-100.
 
 ## Install
 
@@ -77,12 +80,7 @@ only its metadata is used), then put it in your session or catalog and choose **
 then copy the LCC from the matching reference with **Color Cast on** and **Uniform Light off**. The "LCC"
 profiles correct for the overall colour shift an LCC introduces, so use them only with the LCC.
 
-## Use: HNCS E4
-
-Apply **HNCS E4 + Light Falloff 120** (what Phocus gives with lens corrections on), or **HNCS E4** to set
-lens correction yourself.
-
-**In all cases:** keep the film curve on **Linear Response** (Phocus's tone curve is built into the
+**In both cases:** keep the film curve on **Linear Response** (Phocus's tone curve is built into the
 profiles), use **As Shot** white balance, and edit as usual afterwards.
 
 ## Known limits
@@ -101,15 +99,14 @@ profiles), use **As Shot** white balance, and edit as usual afterwards.
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
   rebuild the clipped channel; Capture One can't, and no profile can change that. Below clipping, very
   saturated colours (above about C\* 90, such as a strong yellow) come out 10–20 C\* less saturated than
-  in Phocus. E4 still turns bright saturated yellows and oranges pale; the E5 profiles were fixed for
-  this in Finding 34.
+  in Phocus.
 - **Phocus defaults only.** The match is to Phocus's Standard response in its default working space.
 
 More in [docs/open-questions.md](docs/open-questions.md).
 
 ## How it was made
 
-**E1–E4** were fitted to real photographs rendered in both apps: Phocus with everything but colour and tone
+**E1–E4**, the earlier profiles, were fitted to real photographs rendered in both apps: Phocus with everything but colour and tone
 switched off, and Capture One through a "probe" profile that exposes the exact camera RGB a profile
 receives. A smooth 33 × 33 × 33 table from camera RGB to Phocus's Lab was fitted to the pairs.
 
@@ -130,9 +127,10 @@ The step-by-step notes are in [docs/research-log.md](docs/research-log.md); the 
 ## Repository layout
 
 ```
-profiles/   HNCS E5 28P / 35-100 / 38V (plain, for pre-processed raws); E5 … LCC and LCC Tungsten; HNCS E4
+profiles/   HNCS E5 28P / 35-100 / 38V (plain, for pre-processed raws); E5 … LCC and LCC Tungsten
 styles/     "(pre-processed)", plain and "+ Light Falloff 120" styles for each profile
-fit/        lut_e4.npz, lut_e5_*.npz            fitted 33³ tables before ICC encoding
+fit/        lut_e5_*.npz                        fitted 33³ tables before ICC encoding
+            lut_e4.npz    the earlier real-photo table, still used to read Phocus's grey flats for new lenses
             preprocess_maps/  Phocus's spatial processing by lens, focal length, aperture and focus, as raw gains
             lens_references.json, c1_response.npz, c1_patch_lookup.npz   pre-processing and new-lens data
             lcc/          colour shading maps for the LCC references, and the profiles' input gains
@@ -141,7 +139,7 @@ docs/       results, methodology, research log, open questions, write-up, contac
 tools/      Python and AppleScript: pre-processing, synthetic raws, driving Phocus, fitting, profiles, scoring
 ```
 
-Earlier versions (E1–E3) are in the git history.
+Earlier profiles (E1–E4) are in the git history.
 
 ## Experimenting
 

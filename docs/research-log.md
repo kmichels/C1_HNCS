@@ -1277,7 +1277,9 @@ names.
   - Tungsten 35-100: 2.08 / 6.10 → 2.00 / 5.38.
   - Tungsten 28P: 2.05 / 5.95 → 1.98 / 5.35.
 - **LCC profiles** use the same tables with the gains in `fit/lcc/input_gains.txt`.
-- **E4 wasn't rebuilt.** It comes from `fit_anchored.py`, which still uses the old rule.
+- **E4 wasn't rebuilt.** It comes from `fit_anchored.py`, which still uses the old rule. The E4 profile and its
+  styles were then removed from the repo; they're in git history. `fit/lut_e4.npz` stays, because
+  `auto_lens_profile.py` and `auto_maps.py` use it to read Phocus's grey flats for lenses without an E5 table.
 - **Not checked:** whole real photos rendered in Capture One. The held-out real pairs, scored offline at
   the frame centre, didn't change.
 - Logs: `data/logs/r12_fade_35100.txt`, `r12_fade_28p.txt`, `r12_fade_38v.txt`, `r12_c1_ladder.txt`.

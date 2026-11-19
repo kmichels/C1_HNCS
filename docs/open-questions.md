@@ -61,8 +61,8 @@ Everything still open, in one place. Details for the numbered questions are belo
 - [x] Keep bright yellows and oranges saturated (Finding 34). The colour fade now starts at L\* 100, and
   near-white greys fade from L\* 95. The profile writer no longer runs the fade twice. All seven E5
   profiles were rebuilt. Bright yellows and oranges went from about 19 to 2.4 ΔE00 in Capture One; real
-  held-out frames didn't change. Still to do: whole real photos rendered in Capture One, and E4, which
-  `fit_anchored.py` builds with the old rule.
+  held-out frames didn't change. Still to do: whole real photos rendered in Capture One. (E4, built
+  by `fit_anchored.py` with the old rule, was removed instead.)
 - [ ] Very saturated colours above C\* 90 (strong yellow, magenta) still lose 10–20 C\* to the profiles' soft
   chroma compression (`finalize`'s knee at 90, cap 127). The Lab encoding allows more along most hues;
   a knee keyed to the encodable a\*/b\* range would keep more of it.
