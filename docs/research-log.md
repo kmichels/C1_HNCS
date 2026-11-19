@@ -1756,3 +1756,34 @@ now pick the shade profile automatically above 6200 K.
 - Still open: shade profiles for the other lenses, and more real 28P shade photos.
 - Logs: `data/logs/r21_shade_build.txt`, `r21_eval_35-100.txt`, `r21_eval_28p.txt`, `r21_real.txt`,
   `r21_summary.txt`, `sheet_r21.txt`; scores in `data/val/r21/`.
+
+### Finding 45: shade profiles for every lens
+
+**In plain terms:** The other six lenses now have shade profiles too, built the same way from the same raws
+as their daylight profiles. None of those lenses has a real photo above 6200 K to test on, so they were
+checked on synthetic grids at 6500 and 7500 K that no fit used, placed on the theoretical daylight line
+rather than the line the fitting grids follow. Every lens behaves like the 28P and 35-100: the shade profile
+is better at both, and roughly halves the error at 7500 K.
+
+- Built with `auto_lens_profile.py RAW --light shade --install` from B0001059 (38V) and blog.tonalphoto.com's
+  B0041052 (25V), B0039850 (55V), B0038945 (90V), B_23969 (120 Macro) and B0040287 (135), each with the
+  reference body's record. Synthetic fit residual median 0.58 for every lens, p90 2.45–2.52.
+- Held-out grids (`tools/round21/heldout_grids.py`): one 22-level grid per lens at 6500 K and at 7500 K on
+  the ColorMatrix1 daylight locus, with no off-locus offset, in copies of the same hosts. Scored offline
+  through Capture One's camera RGB from the patch lookup. Median ΔE00, C\* 20–40 | C\* 40–60:
+
+| lens | 6500 K daylight | 6500 K shade | 7500 K daylight | 7500 K shade |
+|---|---|---|---|---|
+| 28P | 0.78 \| 1.13 | 0.75 \| 0.87 | 1.31 \| 2.00 | 0.56 \| 0.61 |
+| 35-100 | 0.83 \| 1.26 | 0.63 \| 0.79 | 1.35 \| 2.10 | 0.42 \| 0.48 |
+| 38V | 1.07 \| 1.66 | 0.65 \| 0.79 | 1.64 \| 2.54 | 0.46 \| 0.48 |
+| 25V | 0.82 \| 1.27 | 0.66 \| 0.81 | 1.38 \| 2.12 | 0.47 \| 0.54 |
+| 55V | 0.83 \| 1.20 | 0.73 \| 0.82 | 1.38 \| 2.10 | 0.54 \| 0.56 |
+| 90V | 0.80 \| 1.23 | 0.64 \| 0.81 | 1.38 \| 2.11 | 0.44 \| 0.48 |
+| 120 Macro | 0.78 \| 1.21 | 0.56 \| 0.74 | 1.33 \| 2.10 | 0.35 \| 0.44 |
+| 135 | 0.81 \| 1.20 | 0.56 \| 0.74 | 1.33 \| 2.11 | 0.35 \| 0.43 |
+
+- These scores include Phocus's spatial gain at each patch (not removed here), the same for both profiles.
+- Still open: real shade photos for these six lenses.
+- Logs: `data/logs/r22_shade_build.txt`, `r22_heldout.txt`, `r22_heldout_scores.txt`; held-out pairs in
+  `data/synth/r22/`.

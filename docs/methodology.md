@@ -192,9 +192,9 @@ offset dominates), and reports the median ΔE00 over the frame and by distance f
   gains, tested on three bodies.
 - **Lenses.** Profiles exist for the 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135;
   `auto_lens_profile.py` builds more from any raw of the lens.
-- **White balance.** The main profiles cover about 4700 to 6200 K, and the 28P and 35-100 have tungsten
-  profiles (about 3100 to 4200 K) and shade profiles (about 6200 to 8600 K). Other lenses drift in shade
-  (Finding 33); mixed light is untested.
+- **White balance.** The main profiles cover about 4700 to 6200 K, every lens has a shade profile (about
+  6200 to 8600 K), and the 28P and 35-100 have tungsten profiles (about 3100 to 4200 K). Mixed light is
+  untested.
 - **Overall brightness.** About ±0.2 L\* per photo is unexplained (up to 0.5 L\* on one photo).
 - **Highlights.** Phocus keeps colour in partly clipped highlights and its Highlight Recovery rebuilds
   clipped channels; Capture One doesn't (Finding 23). No profile can change that.

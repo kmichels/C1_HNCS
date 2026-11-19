@@ -135,7 +135,7 @@ use or rebuild the profiles. Scripts for the earlier real-photo profiles (`pair_
 | `round14/` | 36 and 37: the 90V's focus dependence and the yellow fix on real photos |
 | `round16/` | 39: what a settings file can carry |
 | `round17/` | 40: an LCC per lens setting (`make_state_lcc.py`, used by `state_lcc.py`) |
-| `round21/` | 44: scoring tables offline across white balance (`shade_eval.py`) |
+| `round21/` | 44 and 45: scoring tables offline across white balance (`shade_eval.py`), held-out grids (`heldout_grids.py`) |
 | `round20/` | 43: why the LCC route's brightness was off (`lcc_brightness.py`), validation (`validate.py`, `render_phocus.py`), contact sheet renders |
 
 ## Capture One scripting notes

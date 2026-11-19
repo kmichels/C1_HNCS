@@ -14,8 +14,10 @@ What's still unresolved, with what's known and how to test it. The measurements 
   the profile encoding's limits.
 
 **White balance**
-- [ ] **Shade profiles for the other lenses** (38V, 25V, 55V, 90V, 120 Macro, 135):
-  `auto_lens_profile.py RAW --light shade --install`. The 28P's has been checked on one real photo only.
+- [ ] **Real shade photos** for the 38V, 25V, 55V, 90V, 120 Macro and 135, whose shade profiles are checked
+  on synthetic grids only (Finding 45), and more for the 28P, checked on one photo.
+- [ ] **Tungsten profiles for the other lenses.** `auto_lens_profile.py` has no tungsten mode yet; the
+  28P and 35-100 ones were fitted by hand (Finding 21).
 - [ ] **The 28P tungsten profile** on real tungsten photos (only the 35-100's has been checked).
 - [ ] **Between daylight and tungsten** (about 4200–4700 K), and mixed light: untested.
 - [ ] **Changing white balance in Capture One** replaces the small LCC colour correction carried in the

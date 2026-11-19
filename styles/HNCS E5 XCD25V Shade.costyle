@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<SL Engine="1300">
+	<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />
+	<E K="ICCProfile" V="HasselbladX2DII100C-HNCS E5 XCD25V Shade.icm" />
+	<E K="Name" V="HNCS E5 XCD25V Shade" />
+	<E K="StyleSource" V="Styles" />
+	<E K="UUID" V="569976FD-6BD4-42EB-BC97-D67463DFA114" />
+</SL>
