@@ -8,8 +8,6 @@ What's still unresolved, with what's known and how to test it. The measurements 
 **Accuracy**
 - [ ] **About ±0.2 L\* per photo** remains after Phocus's per-lens-setting brightness (Finding 27). One
   candidate is the maker-note entries that can't be swapped in place.
-- [ ] **The 38V renders about 0.2 L\* darker** than Phocus on every frame (Finding 32). A lightness offset
-  in its table would fix it if it holds on more scenes.
 - [ ] **Very saturated colours** above C\* 130 still run 9–13 C\* short of Phocus (Finding 38), because of
   the profile encoding's limits.
 
@@ -20,9 +18,9 @@ What's still unresolved, with what's known and how to test it. The measurements 
   `auto_lens_profile.py --light tungsten` builds them (Finding 46).
 - [ ] **Between daylight and tungsten** (about 4200–4700 K), and mixed light: untested.
 
-- [ ] **Other cameras and white balance.** On a camera other than the reference body, choosing As Shot or a
-  preset drops its factory-gain correction, which rides in the white balance (Finding 47). Baking the
-  user's own body into their installed profiles would fix it for one camera.
+- [ ] **Several cameras at once.** Profiles can carry one camera's factory-gain correction
+  (`bake_lcc_colour.py --body`, Finding 48); photos from any other camera still carry theirs in the white
+  balance, so a preset or As Shot drops it there.
 
 **Coverage**
 - [ ] **More bodies.** The body correction has been checked on three bodies (Findings 13, 35). Raws from
@@ -54,5 +52,7 @@ What's still unresolved, with what's known and how to test it. The measurements 
 | Shade and overcast light? | Separate shade profiles, picked automatically above 6200 K | 33, 44, 45 |
 | Tungsten profiles for every lens? | `auto_lens_profile.py --light tungsten` | 46 |
 | Does changing white balance in Capture One lose the lens correction's colour? | Not any more: each lens's LCC colour is built into its profiles | 47 |
+| Can the profiles carry my camera's own correction? | Yes: `bake_lcc_colour.py --body RAW` | 48 |
+| Is the 38V darker than Phocus? | By a constant 0.2 L\*, now corrected in its profiles | 32, 49 |
 | Bright yellows and saturated colours? | Kept, after fixing how the profiles fade and compress colour | 34, 37, 38 |
 | Profiles for lenses not owned? | Built from Phocus renders alone, from any raw of the lens | 26, 32, 35 |

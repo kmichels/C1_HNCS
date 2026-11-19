@@ -1884,3 +1884,71 @@ a profile with this correction is only right with the LCC.
   DPReview tungsten frames' settings (35-100 at 85, 90 and 100 mm, f/4.5).
 - Logs: `data/logs/r23_margin_test.txt`, `r23_wb_shift_size.txt`, `r23_validate.txt`, `r23_validate2.txt`,
   `r23_summary.txt`; scores in `data/val/r23/`.
+
+### Finding 48: profiles installed for your own camera keep its correction under any white balance
+
+**In plain terms:** After Finding 47, a camera other than the one the profiles were made on still had its
+factory calibration corrected through white balance, so choosing As Shot or a preset in Capture One dropped
+it. `bake_lcc_colour.py --body` now builds one camera's correction into the profiles it installs. Tested on
+blog.tonalphoto.com's camera: As Shot scores the same as the prepared photo (0.56 against 1.81 before on the
+55V raw), and the prepared photos score within 0.03 ΔE00 of before.
+
+- **`bake_lcc_colour.py --body RAW`** reads RAW's GAIN record, computes the camera RGB gains (1, kG, kB) as
+  `c1_sidecars.body_gain` does (Findings 13, 35), and writes every installed profile with the lens's LCC
+  colour factor times those gains, through Capture One's raw response (`--raw-gain`). It records them in
+  `data/installed_body.json`, which isn't committed. `--body reference` removes that file and installs the
+  repo's profiles again. The repo's profiles are always made for the reference body.
+- **Settings files** (`c1_sidecars.baked_colour`) divide the installed gains out of each photo's white
+  balance and exposure as well as the LCC colour factor. For the installed camera the body correction then
+  cancels completely; for any other camera the ratio stays in the white balance, as before.
+- `bake(…, install=True)`, used by `auto_lens_profile.py --install` and `prepare_folder.py`, writes installed
+  profiles with the recorded camera's gains too, so a new lens's profile matches the rest.
+- **Test:** profiles installed for the third body (record 2.049, 2.250: green ×0.9818, blue ×0.9997), its
+  five raws scored as prepared and with the white balance set to plain As Shot:
+
+| raw | lens | prepared, reference profiles | prepared, its own profiles | As Shot, its own profiles |
+|---|---|---|---|---|
+| B0038945 | 90V | 0.27 | 0.28 | 0.28 |
+| B0039850 | 55V | 0.53 | 0.56 | 0.56 (1.81 with reference profiles) |
+| B0040287 | 135 | 0.19 | 0.22 | 0.22 |
+| B0041052 | 25V | 0.48 | 0.49 | 0.49 |
+| B_23969 | 120 Macro | 0.16 | 0.15 | 0.15 |
+
+  As Shot equals prepared here because each of these lenses has one LCC, so the per-setting remainder is
+  exactly 1. The prepared photos come out up to 0.03 worse with the camera's green gain in the profile than
+  in Capture One's Exposure; the cause isn't known.
+- The owner's camera is the reference body, so its installed profiles are the repo's.
+- Logs: `data/logs/r24_run.txt`, `r24_summary.txt`; scores in `data/val/r24/`.
+
+### Finding 49: the 38V's profiles are corrected for a constant 0.2 L\* darkness
+
+**In plain terms:** Finding 32 saw the 38V render about 0.2 L\* darker than Phocus. With the settings-file
+route and an LCC for each of its settings, all nine of the owner's 38V frames show it: 0.19 to 0.24 L\*
+darker, at every aperture from f/2.5 to f/8 and at two focus distances. A brightness gain of +0.012 stop,
+built into the 38V's profiles, removes it, and every frame scores better.
+
+- Five new LCCs for the frames' settings (38V f/2.8, f/4, f/5.6 and f/8 at focus code 4, and f/2.5 at code 1).
+  The 38V's LCC colour factor is now the mean of six (red ×1.0164, blue ×0.9735, from ×1.0146 and ×0.9763).
+- `fit/lcc_colour.json` can carry a lens's `ev`; `bake_lcc_colour.py` builds 2^ev into all its profiles with
+  the colour factor (and any installed camera gains), and settings files don't divide it out. The 38V's is
+  +0.012 stop: 0.21 L\* at about 18 L\* per stop on HNCS's curve in the midtones.
+- Median ΔE00 against Phocus with corrections on, and dL\*:
+
+| frame | setting | before | corrected | corrected, As Shot |
+|---|---|---|---|---|
+| B0001059 | f/2.5, code 4 | 0.37, −0.21 | 0.31, −0.00 | 0.31, +0.02 |
+| B0001060 | f/2.5, code 4 | 0.37, −0.19 | 0.30, +0.01 | 0.30, +0.03 |
+| B0001061 | f/5.6, code 4 | 0.38, −0.24 | 0.32, −0.02 | 0.36, −0.04 |
+| B0001062 | f/8, code 4 | 0.44, −0.23 | 0.40, −0.00 | 0.44, −0.03 |
+| B0001063 | f/5.6, code 4 | 0.42, −0.20 | 0.40, +0.03 | 0.42, +0.01 |
+| B0001064 | f/4, code 4 | 0.43, −0.19 | 0.40, +0.04 | 0.41, +0.02 |
+| B0001065 | f/2.8, code 4 | 0.40, −0.20 | 0.36, +0.03 | 0.36, +0.04 |
+| B0001066 | f/2.5, code 4 | 0.41, −0.23 | 0.36, −0.01 | 0.37, +0.02 |
+| B0001067 | f/2.5, code 1 | 0.50, −0.19 | 0.45, +0.03 | 0.59, +0.07 |
+| mean | | 0.415, −0.207 | 0.367, +0.013 | 0.395, +0.016 |
+
+- **Contact sheet** rebuilt: 0.26–0.74 against Capture One's default 2.95–6.29. Frame 1059 goes from 0.37 to
+  0.31, and 901 from 0.42 to 0.38 (the colour factor of Finding 47 now built into its shade profile).
+- Why the 38V is darker isn't known. No other lens shows a consistent offset (the 28P's and 35-100's
+  dL\* vary in sign from photo to photo; the other lenses have one photo each).
+- Logs: `data/logs/r24_run.txt`, `r24b_run.txt`, `r24_summary.txt`; scores in `data/val/r24/`.

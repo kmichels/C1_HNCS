@@ -115,6 +115,11 @@ relative to the body the profiles were made on (Findings 13, 16, 35). All synthe
 reference body's record, so the profiles and lens corrections describe one body, and each photo's settings
 file applies its own body's gains through white balance and exposure.
 
+`bake_lcc_colour.py --body RAW` builds one camera's gains into the profiles it installs instead (through
+Capture One's raw response, like the LCC colour factor) and records them in `data/installed_body.json`.
+Settings files then leave them out of that camera's photos, so changing white balance in Capture One keeps
+the correction (Finding 48). The repo's profiles stay made for the reference body.
+
 ## Lens correction: settings files and LCCs
 
 Phocus's lens correction is a fixed multiplier on the raw values, per channel, that depends on lens, focal

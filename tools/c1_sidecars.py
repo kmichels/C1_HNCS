@@ -44,12 +44,21 @@ BODY_REF = (2.600, 2.260)                              # GAIN record of the body
 COLOUR = os.path.join(FIT, "lcc_colour.json")          # each lens's LCC colour factor, built into its profiles
 
 
+INSTALLED_BODY = os.path.join(HERE, "..", "data", "installed_body.json")   # bake_lcc_colour.py --body
+
+
 def baked_colour(name, profile):
-    """The LCC colour factor (kR, 1, kB) built into PROFILE, if it is one of lens NAME's HNCS profiles."""
-    if not profile.startswith("HasselbladX2DII100C-HNCS E5 ") or not os.path.exists(COLOUR):
+    """The gains built into the installed PROFILE, if it is one of lens NAME's HNCS profiles: the lens's LCC
+    colour factor (kR, 1, kB) times the camera correction of bake_lcc_colour.py --body, if one was installed."""
+    if not profile.startswith("HasselbladX2DII100C-HNCS E5 "):
         return np.ones(3)
-    c = json.load(open(COLOUR)).get(name)
-    return np.array([c["kR"], 1.0, c["kB"]]) if c else np.ones(3)
+    g = np.ones(3)
+    c = json.load(open(COLOUR)).get(name) if os.path.exists(COLOUR) else None
+    if c:
+        g = g * np.array([c["kR"], 1.0, c["kB"]])
+    if os.path.exists(INSTALLED_BODY):
+        g = g * np.array(json.load(open(INSTALLED_BODY))["gains"])
+    return g
 
 
 def lcc_id(map_path):
@@ -180,7 +189,7 @@ def main():
         profile = profile_for(name, raw)
         if a.profile:
             profile = a.profile
-        gains = gains / baked_colour(name, profile)   # the profile already applies the lens's typical LCC colour
+        gains = gains / baked_colour(name, profile)   # the profile already applies these (LCC colour, installed body)
 
         ev += float(np.log2(gains[1]))
         wb = gains / gains[1]

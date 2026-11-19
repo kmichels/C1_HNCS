@@ -69,11 +69,16 @@ flowchart TD
 
 You need macOS, Capture One 16.9, Python 3, and Phocus 4.2 for adding new lenses or lens settings.
 
-1. Copy the files in `profiles/` to `~/Library/ColorSync/Profiles/`.
-2. Set up the tools:
+1. Set up the tools:
    ```sh
    python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
    ```
+2. Install the profiles for your camera, giving it any raw you shot with that camera:
+   ```sh
+   .venv/bin/python tools/bake_lcc_colour.py --body ~/Pictures/MyShoot/Capture/B0001234.3FR
+   ```
+   Every X2D II carries a factory calibration that Phocus corrects for. This builds your camera's into the
+   profiles it installs in `~/Library/ColorSync/Profiles/`.
 3. Restart Capture One, which only finds new profiles when it starts.
 
 The profiles are made to be used with the settings files below. Each one includes a small colour
@@ -149,10 +154,10 @@ build anything:
   35-100 under tungsten. Mixed light hasn't been tested.
 - **Brightness.** Some photos come out slightly brighter or darker than Phocus overall, by up to about
   0.5 L\* (0.03 stop).
-- **Changing white balance** in Capture One is fine on the camera the profiles were made on. On another
-  X2D II, a preset, a Kelvin value or As Shot drops that camera's factory-calibration correction, which
-  rides in the white balance (about 1.3–2.0 ΔE00 on the one other camera tested); the white-balance picker
-  on a grey patch doesn't. Lens settings without an LCC get a simpler correction, and changing their white
+- **Changing white balance** in Capture One keeps the colour right on the camera you installed the
+  profiles for. Photos from a different X2D II carry that camera's correction in their white balance
+  instead, so a preset, a Kelvin value or As Shot drops it (about 1.3–2.0 ΔE00); the white-balance picker on
+  a grey patch doesn't. Lens settings without an LCC get a simpler correction, and changing their white
   balance shifts colour slightly too.
 - **New photos only.** Capture One applies a settings file only to a photo it hasn't seen yet. It's been
   tested in sessions; catalogs haven't been tested.

@@ -10,9 +10,11 @@
   "source": "calibrated from 18 LCCs"
  },
  "38V": {
-  "kB": 0.97635,
-  "kR": 1.01459,
-  "source": "calibrated from 1 LCC"
+  "ev": 0.012,
+  "ev_source": "Finding 49: nine real frames at f/2.5-f/8 were 0.19-0.24 L* darker than Phocus",
+  "kB": 0.9735,
+  "kR": 1.01644,
+  "source": "calibrated from 6 LCCs"
  },
  "XCD120": {
   "kB": 0.98668,
