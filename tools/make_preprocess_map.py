@@ -1,10 +1,10 @@
-"""Turn Phocus's export of a synthetic flat into a raw-gain map for preprocess_3fr.py.
+"""Turn Phocus's export of a synthetic flat into a raw-gain map: Phocus's lens correction for one lens state.
 
 flat_gain.py measures Phocus's per-channel gain in Capture One's camera-RGB scale at the flat's level.
 Capture One's Linear Response isn't proportional to raw values in the shadows (fit/c1_response.npz), so
 each gain is converted to the raw gain that produces it at that level (and that BaselineExposure). The
 result is a plain multiplier on raw values, independent of exposure, and is saved under a name built
-from the lens state (lens, focal length, aperture, focus code) so preprocess_3fr.py --maps can find it.
+from the lens state (lens, focal length, aperture, focus code) so c1_sidecars.py and state_lcc.py can find it.
 
 Phocus reads the focus distance from byte 6 of maker-note entry 0x0018 (0 at infinity, rising as focus
 gets closer) and changes its vignetting correction and brightness with it, so the code is part of the

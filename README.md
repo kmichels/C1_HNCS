@@ -1,162 +1,180 @@
 # HNCS for Capture One
 
-Camera profiles, styles and tools that make Capture One render **Hasselblad X2D II 100C** raws the way
-Hasselblad's Phocus does with its Natural Colour Solution (HNCS). Everything was fitted to Phocus's own
-output and checked against real Capture One renders. The closest route lands a median of about 0.5 ΔE00
-from Phocus over the whole frame, corners included, on photos never used in fitting (CIEDE2000 colour
-difference; around 1 is about the smallest difference you can see side by side).
+Hasselblad's own raw software, Phocus, renders X2D II photos with Hasselblad's colour (HNCS, the
+Hasselblad Natural Colour Solution) and its own lens corrections. This project makes Capture One render
+the same raw files the same way, closely enough that the two are hard to tell apart side by side. Your raw
+files aren't changed and no copies are made.
 
-![Phocus vs Capture One with HNCS vs Capture One default](docs/images/contact-sheet.jpg)
+![Phocus, Capture One with this project, and Capture One's default rendering of the same seven raws](docs/images/contact-sheet.jpg)
 
-*Left: Phocus (Standard preset, lens corrections on). Middle: Capture One rendering a pre-processed copy
-of the raw with HNCS E5. Right: Capture One's default rendering. Numbers are the median colour difference
-from Phocus over the whole frame (ΔE00). None of these frames were used in fitting E5.*
+*Left: Phocus (Standard, lens corrections on). Middle: Capture One with this project's settings. Right:
+Capture One's default. The number on each Capture One image is its median colour difference from Phocus
+over the whole frame, in ΔE00. Around 1 is about the smallest difference you can see side by side.*
 
-This is a personal project. It's not affiliated with Hasselblad or Capture One.
+This is a personal project. It isn't affiliated with Hasselblad or Capture One.
 
-## Two ways to use it
+## How it works
 
-| | **Pre-processed + HNCS E5** (closest) | HNCS E5 + LCC |
-|---|---|---|
-| What | a corrected copy of each raw, rendered with a per-lens profile | a per-lens profile plus a colour LCC per lens |
-| Whole frame vs Phocus with corrections on, 23 unseen photos (28P / 35-100) | **0.65 / 0.49** | 1.38 / 0.64 |
-| Needs | Python, and Phocus for lens settings not yet measured | an LCC reference per lens |
-| Lenses | 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135 built in; others built automatically from your raws | 28P and 35-100 |
+Phocus does three things to every X2D II raw that Capture One doesn't. This project reproduces each one
+with something Capture One already understands:
 
-Each E5 profile is made for one lens. For another lens, `preprocess_folder.py --make-profiles` (or
-`tools/auto_lens_profile.py`) builds one from your raws with Phocus.
+| Phocus does this | Capture One gets it from |
+|---|---|
+| **Colour:** HNCS, Hasselblad's colour and tone rendering | a camera profile for each lens |
+| **Lens correction:** brightens the corners and evens out a slight blue shift toward the edges, differently for every lens, focal length, aperture and focus distance | an LCC (Capture One's flat-field correction) made for each lens setting |
+| **Camera calibration:** reads a factory calibration record from each raw, so every X2D II renders alike | exposure and white balance adjusted for your camera |
 
-Pre-processing writes Phocus's lens correction, colour shading and per-lens-setting brightness (lens,
-focal length, aperture and focus distance) into a copy of the raw, so Capture One needs no LCC and no
-Light Falloff. The 28P's corners, which the profile-only routes can't match at f/5.6 and narrower, come
-out right. Your originals are only read. Details and numbers: [docs/results.md](docs/results.md).
+All three are written into a Capture One **settings file** next to each raw before you import it. Capture
+One reads that file when it first opens the photo, so the photo arrives already looking like Phocus, and you
+edit from there as usual.
 
-The profiles are fitted for daylight (about 4700–6300 K). The LCC route also has **tungsten** versions
-(about 3100–4200 K) for the 28P and 35-100.
+```mermaid
+flowchart LR
+  raws["Your X2D II raws"] --> prep["prepare_folder.py"]
+  prep --> files["A settings file next to each raw"]
+  files --> c1["Open the folder in Capture One"]
+  c1 --> look["Photos open with Phocus's look"]
+```
+
+Phocus is needed only the first time a lens, or a lens setting, turns up. That's when its colour and lens
+correction are measured:
+
+```mermaid
+flowchart TD
+  subgraph once["Once per lens and per lens setting"]
+    p1["Phocus renders test images written into a copy of one of your raws"] --> p2["Colour profile for the lens"]
+    p1 --> p3["Lens correction map for the setting"]
+    p3 --> p4["Capture One turns the map into an LCC"]
+  end
+  subgraph shoot["Every shoot: Capture One only"]
+    s1["prepare_folder.py reads each raw's lens, focal length, aperture, focus distance and white balance"] --> s2["Writes its settings file: profile, LCC, exposure, white balance"]
+    s2 --> s3["Import into Capture One"]
+  end
+  p2 --> s2
+  p4 --> s2
+```
+
+## What's included
+
+- **Profiles** for the XCD 28P, 35-100, 38V, 25V, 55V, 90V, 120 Macro and 135, plus tungsten versions of
+  the 28P and 35-100 that are used automatically for photos taken under tungsten light. Profiles for any
+  other XCD lens can be made from one of your raws.
+- **Lens correction maps** for the 57 lens settings measured so far. Capture One's LCCs are made from them
+  on your own computer, because each LCC records your camera's serial number. Maps for new settings can be
+  measured with Phocus.
+- **Tools** that do all of this with one command.
 
 ## Install
 
-Tested with Capture One 16.9 and Phocus 4.2.2 on macOS.
+You need macOS, Capture One 16.9, Python 3, and Phocus 4.2 for adding new lenses or lens settings.
 
 1. Copy the files in `profiles/` to `~/Library/ColorSync/Profiles/`.
-2. Copy the files in `styles/` to `~/Library/Application Support/Capture One/Styles/`.
-3. Restart Capture One. New profiles and styles only appear after a restart.
-4. For pre-processing or LCC references, set up the tools once:
-   `python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt`
+2. Optionally, copy the files in `styles/` to `~/Library/Application Support/Capture One/Styles/`. You
+   don't need them for new imports. Each one applies a lens's profile to a photo Capture One already
+   knows, but without the lens correction.
+3. Set up the tools:
+   ```sh
+   python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
+   ```
+4. Restart Capture One, which only finds new profiles when it starts.
 
-## Use: pre-processed raws + HNCS E5
+## Use
 
-```sh
-.venv/bin/python tools/preprocess_folder.py ~/Pictures/MySession/Capture ~/Pictures/MySession/Corrected --make-maps --make-profiles
-```
-
-- Writes a corrected copy of every raw into `Corrected` (same file names). Import or browse that folder.
-- Each copy gets a Capture One settings file, so it opens with its lens's profile (**HNCS E5 28P**,
-  **HNCS E5 XCD90V** and so on), Linear Response and Light Falloff 0. For files Capture One has seen
-  before, apply the **HNCS E5 … (pre-processed)** style instead.
-- If your camera isn't the one the profiles were made on, add `--body-gains`.
-- `--make-maps` measures any combination of lens, focal length, aperture and focus distance it hasn't
-  seen (`fit/preprocess_maps/` has 57 across the eight lenses; without `--make-maps` a missing focus
-  distance uses the nearest one measured). `--make-profiles` builds an E5 profile and
-  styles for any other lens, from Phocus renders alone, and installs them (restart Capture One). Both run
-  Phocus unattended, so don't use it meanwhile.
-- Costs: a full-size copy of each raw, and brightened corners use some highlight headroom (about 2% of
-  photosites clipped on a few frames with bright sky in the corners; those areas render near white in
-  HNCS anyway).
-
-## Use: HNCS E5 with an LCC
-
-Phocus shades colour across the frame (less blue toward the edges) by an amount that depends on the lens,
-even with lens corrections off. A Capture One LCC can reproduce that.
-
-**Once per lens**, make an LCC reference from any raw you shot with that lens (its pixels are replaced;
-only its metadata is used), then put it in your session or catalog and choose **Create LCC**:
+Before Capture One has seen the photos, run:
 
 ```sh
-.venv/bin/python tools/make_lcc_raw.py ANY_28P_RAW.3fr "HNCS LCC 28P.3fr" --colour fit/lcc/colour_28P.npz
-.venv/bin/python tools/make_lcc_raw.py ANY_35-100_RAW.3fr "HNCS LCC 35-100.3fr" --colour fit/lcc/colour_35-100.npz
+.venv/bin/python tools/prepare_folder.py ~/Pictures/MyShoot/Capture
 ```
 
-**Per image:** apply **HNCS E5 28P LCC + Light Falloff 120** (or the 35-100 or **… Tungsten** version),
-then copy the LCC from the matching reference with **Color Cast on** and **Uniform Light off**. The "LCC"
-profiles correct for the overall colour shift an LCC introduces, so use them only with the LCC.
+Then open that folder in a Capture One session (or import it). Each raw gets a settings file and a copy of
+its lens correction in `CaptureOne/Settings1690/` inside that folder, about 28 KB per photo. That's the
+folder where Capture One keeps its own per-photo settings anyway. Your raw files aren't touched.
 
-**In both cases:** keep the film curve on **Linear Response** (Phocus's tone curve is built into the
-profiles), use **As Shot** white balance, and edit as usual afterwards.
+A typical line of output:
 
-## Known limits
+```
+B0000919.3FR: XCD28P_28mm_f8.0_d0.npz, exposure +0.001 EV, LCC XCD28P_28mm_f8p0_d0, profile HNCS E5 28P
+```
 
-- **One camera model.** Each X2D II carries a factory calibration record that Phocus uses to normalise
-  the body and Capture One ignores; the profiles match the body they were made on. For another body,
-  pre-process with `--body-gains` (`tools/body_gains.py YOUR_RAW.3fr` prints the correction). On a third
-  body's photos, the correction took the whole-frame error from 1.3–2.0 to 0.16–0.51 ΔE00.
-- **White balance.** Phocus's colour shifts with white balance. Use the tungsten profiles for tungsten
-  light (1.0–1.7 ΔE00 on real tungsten photos, against 2.0–2.8 with the daylight ones); mixed light is
-  untested. In shade and overcast light (about 6500–8000 K) the daylight profiles drift too: colourful
-  synthetic patches reach about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K, and three real shade photos scored
-  0.58–0.78.
-- **Profile-only routes.** Without pre-processing, the 28P's corners at f/5.6 and narrower stay darker
-  than Phocus, and Phocus's per-lens-setting brightness (up to about ±0.5 L\* on the 35-100 between 45
-  and 75 mm) isn't included. About ±0.2 L\* per frame remains unexplained in every route.
+### The first time you use a lens or lens setting
+
+A lens setting is the lens, focal length, aperture and focus distance. Each one needs a map and an LCC.
+Without an LCC, `prepare_folder.py` says so and uses a simpler, less accurate correction; without a map it
+skips the photo. So the first time, and whenever you've shot a new setting, add:
+
+```sh
+.venv/bin/python tools/prepare_folder.py ~/Pictures/MyShoot/Capture --make-maps --make-profiles --make-lccs
+```
+
+| Option | What it does | Needs | Time |
+|---|---|---|---|
+| `--make-maps` | measures Phocus's lens correction for each new lens setting | Phocus (don't use it meanwhile) | about 25 s per setting |
+| `--make-profiles` | builds a colour profile for each new lens; restart Capture One afterwards | Phocus | about 5 min per lens |
+| `--make-lccs` | turns each new lens correction into an LCC | Capture One open on a separate "lab" session | about 1.5 min per setting |
+
+For `--make-lccs`, create an empty Capture One session that you use only for this (call it "HNCS Lab"),
+keep it open, and pass its Capture folder with `--lab ~/Pictures/HNCS\ Lab/Capture`. It also needs the test
+profile installed once, before Capture One starts:
+
+```sh
+.venv/bin/python tools/build_probe.py ~/Library/ColorSync/Profiles
+```
+
+Each option only does the work that's missing, so it's safe to leave them on. LCCs are kept in
+`data/lcc_c1/`, which isn't committed.
+
+## How close it gets
+
+Median colour difference from Phocus (lens corrections on), in ΔE00, on photos that weren't used to
+build anything:
+
+| Photos | Whole frame | Corners |
+|---|---|---|
+| 28P, 7 photos at f/4 to f/16 | 0.59 | 0.69 |
+| 35-100, 16 photos at 35 to 100 mm | 0.49 | 0.50 |
+| Another X2D II, one photo each from the 25V, 55V, 90V, 120 Macro and 135 | 0.33 | 0.34 |
+| For comparison: Capture One's default, on the seven photos above | 2.9 to 6.3 | |
+
+"Corners" is everything beyond 80% of the way from the centre to a corner.
+
+## Limits
+
 - **Highlights.** Where a sensor channel clips, Phocus keeps some colour and its Highlight Recovery can
-  rebuild the clipped channel; Capture One can't, and no profile can change that. Below clipping, only
-  the most saturated colours (above about C\* 130, beyond most real scenes) come out a little less
-  saturated than in Phocus.
-- **Phocus defaults only.** The match is to Phocus's Standard response in its default working space.
-
-More in [docs/open-questions.md](docs/open-questions.md).
-
-## How it was made
-
-**E1–E4**, the earlier profiles, were fitted to real photographs rendered in both apps: Phocus with everything but colour and tone
-switched off, and Capture One through a "probe" profile that exposes the exact camera RGB a profile
-receives. A smooth 33 × 33 × 33 table from camera RGB to Phocus's Lab was fitted to the pairs.
-
-**E5** was fitted without any real photos. X2D II raws store uncompressed sensor data, so a copy of a real
-raw can be filled with colour patches of exactly known camera RGB, and Phocus's hot folder renders them
-without its GUI. That made it possible to measure Phocus across the whole colour range at many white
-balances, map its spatial processing with synthetic flat fields, and find which metadata drives it: two
-factory calibration gains per body, and a 34-byte lens identity that Phocus uses to look up its own lens
-data.
-
-**Pre-processing** applies that measured spatial processing to the raw itself, through Capture One's raw
-response curve.
-
-The step-by-step notes are in [docs/research-log.md](docs/research-log.md); the overview is in
-[docs/methodology.md](docs/methodology.md). A write-up for blog.tonalphoto.com's author is in
-[docs/writeup.md](docs/writeup.md).
+  rebuild the clipped channel. Capture One can't, and no profile changes that.
+- **White balance.** The profiles match Phocus best in daylight (about 4700 to 6300 K). Under tungsten
+  light the tungsten profiles take over, for the 28P and 35-100 only. In shade and overcast light, colourful
+  areas drift: about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K. Mixed light hasn't been tested.
+- **Brightness.** Some photos come out brighter or darker than Phocus overall, by up to about 0.06 stop.
+- **If you change white balance** in Capture One, a small colour correction that comes with the lens
+  correction is replaced too, so colours shift slightly from Phocus's.
+- **New photos only.** Capture One applies a settings file only to a photo it hasn't seen yet. It's been
+  tested in sessions; catalogs haven't been tested.
+- **Phocus's defaults.** The match is to Phocus's Standard response in its default working space.
+- **Camera.** Hasselblad X2D II 100C only.
 
 ## Repository layout
 
 ```
-profiles/   HNCS E5 28P / 35-100 / 38V / XCD25V / XCD55V / XCD90V / XCD120 / XCD135 (plain, for pre-processed raws); E5 … LCC and LCC Tungsten
-styles/     "(pre-processed)", plain and "+ Light Falloff 120" styles for each profile
-fit/        lut_e5_*.npz                        fitted 33³ tables before ICC encoding
-            lut_e4.npz    the earlier real-photo table, still used to read Phocus's grey flats for new lenses
-            preprocess_maps/  Phocus's spatial processing by lens, focal length, aperture and focus, as raw gains
-            lens_references.json, c1_response.npz, c1_patch_lookup.npz   pre-processing and new-lens data
-            lcc/          colour shading maps for the LCC references, and the profiles' input gains
-            synthetic/    Phocus's renders of the synthetic patches (camera RGB → Lab) and flat-field maps
-docs/       results, methodology, research log, open questions, write-up, contact sheet
-tools/      Python and AppleScript: pre-processing, synthetic raws, driving Phocus, fitting, profiles, scoring
+profiles/   Capture One camera profiles ("HNCS E5 <lens>"; E5 is the profile's version)
+styles/     optional styles that apply each profile with Linear Response
+tools/      prepare_folder.py and the scripts behind it (see tools/README.md)
+fit/        fitted colour tables, lens correction maps, and the data needed to rebuild them
+docs/       how it was measured and everything found along the way
 ```
 
-Earlier profiles (E1–E4) are in the git history.
+## More detail
 
-## Experimenting
-
-- **Edit a table and re-export.** Each `fit/lut_*.npz` holds a fitted table (`lut`, 33³ × Lab):
-  `python tools/write_profile.py fit/lut_e5_28p.npz "HNCS Mine" out/`
-- **Refit from the synthetic data** in `fit/synthetic/`, no Phocus needed:
-  `python tools/fit_synthetic.py out.npz --gainmap fit/synthetic/flat_maps/F35aoff.npz --pairs fit/synthetic/pairs/HNCSgridA0.npz …`
-- **Another lens:** `python tools/auto_lens_profile.py YOUR_RAWS… --install`. More in
-  [tools/README.md](tools/README.md).
+- [docs/methodology.md](docs/methodology.md): how Phocus's colour and lens correction were measured,
+  and how they're reproduced.
+- [tools/README.md](tools/README.md): the scripts.
+- [docs/open-questions.md](docs/open-questions.md): what's still open.
+- [docs/research-log.md](docs/research-log.md): the project's history. Every experiment in order,
+  including approaches that were tried and dropped.
 
 ## Credits
 
-[blog.tonalphoto.com](https://blog.tonalphoto.com/) for the Lightroom profile that inspired this, and
-for its measurements of Phocus (HNCS and white balance, edge brightening, BaselineExposure, lens files
-in the firmware, the Phocus hot folder).
+[blog.tonalphoto.com](https://blog.tonalphoto.com/) for the Lightroom profile that inspired this, for its
+measurements of Phocus, and for sample raws from five more lenses and another camera.
 
 ## License
 

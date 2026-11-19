@@ -26,9 +26,9 @@ Everything is in a public repo: profiles, styles, tools and a long research log
 - **Capture One profiles that land about 0.5 ΔE00 from Phocus** at the frame centre, on frames never
   used in fitting. There's one per lens: the XCD 28P, 35-100 and 38V I own, plus the 25V, 55V, 90V,
   120 Macro and 135 from your raws. The 28P and 35-100 also have tungsten versions.
-- **A pre-processing step that gets the whole frame there.** It writes Phocus's lens correction and colour
-  shading into a copy of the raw, and Capture One renders the copy with a plain profile. On 23 of my
-  photos that no fit had seen, the whole-frame median is about 0.5.
+- **Phocus's lens correction, out to the corners.** A Capture One settings file written next to each raw
+  before import carries an LCC made for that photo's lens setting, plus exposure and white balance. On 23
+  of my photos that no fit had seen, the whole-frame median is about 0.5. The raws aren't touched.
 - **Every X2D II carries a factory calibration record** that Phocus uses to make bodies render alike.
   Capture One ignores it; I haven't tested Lightroom. Your camera's record is further from mine than any
   I'd seen, and Phocus treats it exactly as the formula predicts. On your five raws, correcting for it brings Capture
@@ -97,8 +97,8 @@ also 0.4 to 0.6 L\* too bright, because the green gain carries lightness as well
 
 What this means for anyone building profiles: a profile made on one body carries that body's
 calibration, and Capture One never sees the record. If Lightroom doesn't read it either, your DCP fits
-your camera and would be off by about this much on mine. The repo has a small script that reads any raw's record and prints the
-correction, and the pre-processing step can apply it.
+your camera and would be off by about this much on mine. In Capture One the correction works as a
+white-balance and exposure change, so the settings file for each photo applies its own body's record.
 
 ### What HNCS is made of
 
@@ -197,35 +197,32 @@ doesn't matter at all. Break the pair (0x0018 on its own) and Phocus switches le
 entirely, which is how I found its "no lens" baseline. The tables themselves live in Phocus's 119 MB
 HBUtil framework, which names every XCD lens.
 
-### Writing the correction into the raw
+### Getting the correction into Capture One
 
-Because the correction is a fixed multiplier and the raw is uncompressed, the cleanest way to reproduce
-it in Capture One is to do it before Capture One sees the file. A script makes a synthetic flat with the
-lens state of a given raw, has Phocus render it through the hot folder, converts the measured gain
-through Capture One's response curve, and caches a map per lens, focal length, aperture and focus code
-(57 so far). Another writes a corrected copy of each raw. The copy renders with a plain profile, no Light
-Falloff and no LCC:
+Because the correction is a fixed multiplier on each channel, a Capture One LCC can carry it, as long as
+there's one LCC per lens setting. A script makes a synthetic flat with the lens state of a given raw, has
+Phocus render it through the hot folder, converts the measured gain through Capture One's response curve,
+and caches a map per lens, focal length, aperture and focus code (57 so far). Another writes a synthetic
+LCC reference from each map and has Capture One make the LCC. Phocus's correction is slightly elliptical
+and off-centre, which Capture One's radial Light Falloff can't follow; the LCC follows it to about 0.015
+stop.
 
-| 23 photos not used in fitting, whole frame, median ΔE00 vs Phocus with corrections on | 28P (7) | 35-100 (16) |
+An LCC also nudges the overall colour, so each one is calibrated on three flats in Capture One and the
+nudge is cancelled through exposure and white balance. Capture One can't choose an LCC by lens setting on
+its own, so the last step writes its own settings file next to each raw before import: profile, Linear
+Response, the lens setting's LCC, exposure and white balance.
+
+| Photos not used in fitting, whole frame, median ΔE00 vs Phocus with corrections on | 28P (7) | 35-100 (16) |
 |---|---|---|
-| Corrected copy, plain profile | **0.65** | **0.49** |
-| Profile per lens + colour LCC + Light Falloff 120 | 1.38 | 0.64 |
-
-Adding the lens-setting brightness to the maps took 14 of those frames from a mean of 0.55 to 0.47, with
-their lightness offsets falling from 0.33 to 0.12 L\*. The batch tool also writes a Capture One
-settings file next to each copy, so it opens with the right profile and Light Falloff 0.
+| Profile per lens, LCC per lens setting, in a settings file | **0.59** | **0.49** |
+| Profile per lens, one colour LCC per lens, Light Falloff 120 | 1.38 | 0.64 |
 
 A lens I don't own can get its own profile from Phocus renders alone, because Capture One turns each
 synthetic patch into the same camera RGB whatever the lens. Only the raw's metadata is used. My 38V got its
 profile that way, and nine frames from it land 0.35 to 0.53 from Phocus. Your five lenses did too: I gave
 each raw my calibration record first, so the profiles fit my body, and then scored your photos with the
-correction above. They come out flat to the corners as well, though each lens was tested at one setting
-only.
-
-The cost is a full-size copy of every raw, and some highlight headroom in brightened corners. I tried
-buying that back by darkening the raw and raising BaselineExposure. Capture One renders it identically,
-but it can no longer tell which photosites clipped in camera, so a recovered sky gets a hard band. I
-dropped it.
+correction above. They come out flat to the corners as well (0.33 over the five), though each lens was
+tested at one setting only.
 
 ### Highlights
 

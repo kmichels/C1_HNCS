@@ -4,8 +4,9 @@ Synthetic patch grids are written into a copy of one of the raws (so Phocus sees
 own white balance and five more daylight white balances, plus a flat field for Phocus's spatial gain.
 Phocus renders them through its hot folder. Capture One's camera RGB for each patch comes from
 fit/c1_patch_lookup.npz (measured once; the same for any lens and white balance), so Capture One isn't
-needed. The fitted table is written as a Capture One profile, with a plain style and a "(pre-processed)"
-style (Light Falloff 0) for raws made by preprocess_3fr.py.
+needed. The fitted table is written as a Capture One profile, with a style that sets it and Linear Response.
+The synthetic copies carry the reference body's factory gains, so the profile serves every X2D II body
+(c1_sidecars.py corrects other bodies).
 
 Phocus is restarted and its preferences restored afterwards; don't use it meanwhile. Raws are only read.
 
@@ -19,7 +20,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import uuid
 
 import numpy as np
 import tifffile
@@ -28,7 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 from make_preprocess_map import lens_state, profile_name  # noqa: E402
-from phocus_hotfolder import HotFolder, set_baseline_exposure, set_landscape  # noqa: E402
+from phocus_hotfolder import HotFolder, set_baseline_exposure, set_landscape, set_reference_body  # noqa: E402
 
 WB_GRIDS = ["HNCSwbA1", "HNCSwbA2", "HNCSwbA3", "HNCSwbA4", "HNCSwbA5"]  # their As Shot neutrals are reused
 
@@ -71,9 +71,11 @@ try:
         run(os.path.join(HERE, "make_synthetic_raw.py"), host, os.path.join(work, f"{tag}.3fr"), "--uid", f"HNCSLENS{tag}".ljust(16, "0")[:16], *extra)
         set_landscape(os.path.join(work, f"{tag}.3fr"))
         set_baseline_exposure(os.path.join(work, f"{tag}.3fr"), 0.0)  # the Capture One lookup was measured at 0
+        set_reference_body(os.path.join(work, f"{tag}.3fr"))  # fit the reference body; others are corrected per raw
     run(os.path.join(HERE, "make_synthetic_raw.py"), host, os.path.join(work, "flat.3fr"), "--flat", "45", "--uid", "HNCSLENSFLAT0000")
     set_landscape(os.path.join(work, "flat.3fr"))
     set_baseline_exposure(os.path.join(work, "flat.3fr"), 0.0)
+    set_reference_body(os.path.join(work, "flat.3fr"))
     exports = {}
     with HotFolder() as hf:
         for tag, _ in grids + [("flat", None)]:
@@ -96,20 +98,15 @@ try:
     icc = f"HasselbladX2DII100C-{pname}.icm"
     shutil.copyfile(os.path.join(work, icc), os.path.join(prof_dir, icc))
     shutil.copyfile(os.path.join(work, f"{pname}.costyle"), os.path.join(style_dir, f"{pname}.costyle"))
-    pp = f"{pname} (pre-processed)"
-    with open(os.path.join(style_dir, f"{pp}.costyle"), "w") as f:
-        f.write(f'<?xml version="1.0"?>\n<SL Engine="1300">\n\t<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />\n'
-                f'\t<E K="ICCProfile" V="{icc}" />\n\t<E K="LensLightFallOff" V="|0|1" />\n\t<E K="Name" V="{pp}" />\n'
-                f'\t<E K="StyleSource" V="Styles" />\n\t<E K="UUID" V="{str(uuid.uuid4()).upper()}" />\n</SL>\n')
     import json
     refs_path = os.path.join(a.out or os.path.join(REPO, "fit"), "lens_references.json")
     refs = json.load(open(refs_path)) if os.path.exists(refs_path) else {}
     refs[name] = lens_state(host)[0]
     json.dump(refs, open(refs_path, "w"), indent=2)
-    print(f"wrote {os.path.join(prof_dir, icc)}, styles '{pname}' and '{pp}', table {lut_path}; reference lens state {refs[name]}")
+    print(f"wrote {os.path.join(prof_dir, icc)}, style '{pname}', table {lut_path}; reference lens state {refs[name]}")
     if a.install:
         shutil.copyfile(os.path.join(prof_dir, icc), os.path.expanduser(f"~/Library/ColorSync/Profiles/{icc}"))
-        for s in (pname, pp):
+        for s in (pname,):
             shutil.copyfile(os.path.join(style_dir, f"{s}.costyle"), os.path.expanduser(f"~/Library/Application Support/Capture One/Styles/{s}.costyle"))
         print("installed; restart Capture One to see them")
 finally:

@@ -2,8 +2,7 @@
 <SL Engine="1300">
 	<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />
 	<E K="ICCProfile" V="HasselbladX2DII100C-HNCS E5 28P.icm" />
-	<E K="LensLightFallOff" V="|0|1" />
-	<E K="Name" V="HNCS E5 28P (pre-processed)" />
+	<E K="Name" V="HNCS E5 28P" />
 	<E K="StyleSource" V="Styles" />
-	<E K="UUID" V="214D9CB5-0031-48D8-8E20-A408D4EBE990" />
+	<E K="UUID" V="5B523AEC-D32F-42B8-93BA-BCEF8281E685" />
 </SL>

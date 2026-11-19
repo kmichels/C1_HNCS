@@ -15,7 +15,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from make_preprocess_map import FIT, lens_state, profile_name  # noqa: E402
-from phocus_hotfolder import HotFolder, set_baseline_exposure, set_landscape  # noqa: E402
+from phocus_hotfolder import HotFolder, set_baseline_exposure, set_landscape, set_reference_body  # noqa: E402
 
 
 def lens_lut(lens):
@@ -48,6 +48,7 @@ try:
             subprocess.run([py, "-I", os.path.join(HERE, "make_synthetic_raw.py"), raw, flat, "--flat", "30", "--uid", "HNCSAUTOMAP00000"], check=True, capture_output=True)
             set_landscape(flat)
             set_baseline_exposure(flat, 0.0)  # so centre brightness compares across lens states
+            set_reference_body(flat)  # maps are made as if on the reference body
             tif = hf.render(flat, name=f"flat_{key}.3fr", LensCorrection=4)
             lut = lens_lut(lens)
             fg = os.path.join(work, f"gain_{key}.npz")

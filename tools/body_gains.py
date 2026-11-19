@@ -9,8 +9,8 @@ relative to the body the profiles were fitted on (g1_ref = 2.600, g2_ref = 2.260
 at once combines the two effects. Validated on 32 raws from another body (2.363, 2.518): frame-centre
 median 1.23 -> 0.96 dE00, grey offset (-0.52, +0.53) a*/b* -> (-0.08, +0.01).
 
-Prints the --input-gain to pass to write_profile.py. For an "LCC" profile, multiply it with that
-profile's LCC gain (fit/lcc/input_gains.txt) channel by channel.
+Prints the correction. c1_sidecars.py applies it automatically through each raw's exposure and white
+balance; write_profile.py --input-gain can bake it into a profile instead.
 
 usage: python body_gains.py YOUR_RAW.3fr [--ref 2.600,2.260]
 """

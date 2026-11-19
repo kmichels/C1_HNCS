@@ -60,6 +60,20 @@ def set_baseline_exposure(path, value=0.0):
         f.write(struct.pack("<ii", int(round(value * 1_000_000)), 1_000_000))
 
 
+def set_reference_body(path, g1=2.600, g2=2.260):
+    """Write the reference body's two factory gains into a raw copy's GAIN record (maker note 0x0019, bytes
+    84-87), so Phocus renders it as the body the profiles were fitted on (Findings 13, 16, 35). Phocus doesn't
+    check the record's checksum. Other bodies are then corrected in the Capture One settings file."""
+    import numpy as np
+    from makernote_transplant import entries
+    e = entries(path).get(0x0019)
+    if e is None or e["raw"][:4] != b"GAIN":
+        return
+    with open(path, "r+b") as f:
+        f.seek(e["loc"] + 84)
+        f.write(np.array([g1, g2], "<f2").tobytes())
+
+
 def _bookmark(path):
     js = ('ObjC.import("Foundation"); var u = $.NSURL.fileURLWithPath("%s"); '
           'u.bookmarkDataWithOptionsIncludingResourceValuesForKeysRelativeToURLError(0, $(), $(), null)'

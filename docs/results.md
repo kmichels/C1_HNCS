@@ -1,3 +1,5 @@
+> **Historical.** Scores from earlier stages of the project: the E1 to E4 profiles fitted on real photos, early E5 results, and pre-processing. Current numbers are in the [README](../README.md) and [research-log.md](research-log.md); see [history.md](history.md).
+
 # Results
 
 All numbers are CIEDE2000 (ΔE00) between Capture One and Phocus, computed on per-block mean Lab.

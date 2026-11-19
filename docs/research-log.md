@@ -1593,3 +1593,53 @@ per lens setting, made and calibrated by script in Capture One.
   - give each body its profile.
 - The calibration needs the probe profile installed and Capture One open; the LCC files stay local.
 - Logs: `data/logs/r18_calibration.txt`, `r18_scores.txt`; scores in `data/val/r18/`.
+
+### Finding 42: the settings-file route replaces pre-processing
+
+**In plain terms:** Every lens setting in the validation set now has its own calibrated LCC, and one
+command writes a Capture One settings file for each original raw. On 28 photos no fit had seen, from two
+bodies and seven lenses, the whole-frame median is 0.488 ΔE00 against pre-processing's 0.464, and no photo
+is worse by more than 0.12. That's close enough to drop pre-processing: no corrected copies, no lost
+highlight headroom, and the raws are never touched. Some photos come out slightly brighter or darker
+overall than they did with pre-processing, for a reason not yet found.
+
+- **One command.** `tools/prepare_folder.py FOLDER [--make-maps] [--make-profiles] [--make-lccs]` runs
+  `auto_maps.py`, `auto_lens_profile.py --install`, `state_lcc.py ensure` and `c1_sidecars.py` in turn.
+- **An LCC per lens setting, named by its map.** `c1_sidecars.lcc_id` turns a map's file stem into the LCC
+  id (`XCD28P_28mm_f4.0_d0.npz` → `XCD28P_28mm_f4p0_d0`), so `c1_sidecars.py` finds a lens setting's LCC
+  and calibration in `data/lcc_c1/` with no lookup table. Without one it falls back to the radial Light
+  Falloff curve (Finding 39) and says so.
+- **28 LCCs made and calibrated** unattended in the lab session, about 1.5 minutes each. Calibrations:
+  exposure −0.008 to +0.007 EV, kR 1.001 to 1.023, kB 0.956 to 0.990, local slope 1.053 to 1.069 on every
+  channel.
+- **Body correction through white balance.** The body's gains (1, kG, kB) relative to the reference record
+  (2.600, 2.260) multiply the LCC calibration's (kR, 1, kB) and 2^EV. The settings file gets
+  Exposure = lens-setting brightness + log2(green gain), and WhiteBalance = As Shot multipliers × gains /
+  green gain. So one profile per lens serves every body, with no per-body profile.
+- **Reference-body maps and profiles.** `auto_maps.py` and `auto_lens_profile.py` now write the reference
+  body's GAIN record into their synthetic copies (`phocus_hotfolder.set_reference_body`), so maps and
+  profiles made from another body's raws still describe the reference body.
+- **Tungsten profiles picked automatically.** Below an As Shot of 4400 K (McCamy, from ColorMatrix1 and
+  AsShotNeutral) the lens's Tungsten profile is used where one exists. DPReview's tungsten frames
+  (3207–3306 K) get the 35-100 Tungsten profile.
+
+| 28 photos not used in fitting, against Phocus with corrections on | pre-processed copy | settings file |
+|---|---|---|
+| 28P (7): median / p90 / corners (r > 0.8) | 0.541 / 1.058 / 0.601 | 0.586 / 1.083 / 0.687 |
+| 35-100 (16) | 0.476 / 0.956 / 0.487 | 0.494 / 0.967 / 0.503 |
+| Third body (5): 25V, 55V, 90V, 120 Macro, 135 | 0.318 / 0.825 / 0.319 | 0.332 / 0.833 / 0.343 |
+| All 28, median | 0.464 | 0.488 |
+
+- **Worst frame differences** (settings file minus pre-processed): +0.11 on the 28P, +0.12 on the 35-100,
+  +0.03 on the third body.
+- **Overall brightness moved on some frames.** The near-neutral dL\* against Phocus changed by up to
+  ±0.4 on the 28P (B0000939: +0.01 → −0.41; B0000919: +0.06 → +0.27), and on the 38V contact-sheet frame
+  B0001059 from −0.21 to −0.85, which takes it from 0.35 to 0.82 ΔE00. The offset is uniform across the
+  frame. It doesn't follow orientation, BaselineExposure or focus code. Open.
+- **Contact sheet** rebuilt with the settings-file route: Phocus (Standard, corrections on), Capture One
+  with the settings file, Capture One's default. Whole-frame medians 0.28–0.82 against 2.95–6.29.
+- **Removed:** `preprocess_folder.py`, `preprocess_3fr.py`, `make_lcc_raw.py`, `fit/lcc/`, the
+  "(pre-processed)" styles, and the per-lens colour LCC profiles and styles. The plain styles stay, for
+  photos Capture One has already seen, and the tungsten profiles gained styles.
+- Logs: `data/logs/r19_prepare.txt`, `r19_scores.txt`, `r19_summary.txt`, `sheet_prepare.txt`,
+  `sheet.txt`; scores in `data/val/r19/`.
