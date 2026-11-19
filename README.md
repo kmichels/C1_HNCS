@@ -93,9 +93,11 @@ Before Capture One has seen the photos, run:
 .venv/bin/python tools/prepare_folder.py ~/Pictures/MyShoot/Capture
 ```
 
-Then open that folder in a Capture One session (or import it). Each raw gets a settings file and a copy of
-its lens correction in `CaptureOne/Settings1690/` inside that folder, about 28 KB per photo. That's the
-folder where Capture One keeps its own per-photo settings anyway. Your raw files aren't touched.
+Then open that folder in a Capture One session, or import it into a catalog with **Include existing
+adjustments** ticked (it is by default), either leaving the files where they are or copying them in. Each
+raw gets a settings file and a copy of its lens correction in `CaptureOne/Settings1690/` inside that
+folder, about 28 KB per photo. That's the folder where Capture One keeps its own per-photo settings anyway.
+Your raw files aren't touched.
 
 A typical line of output:
 
@@ -159,8 +161,8 @@ build anything:
   instead, so a preset, a Kelvin value or As Shot drops it (about 1.3–2.0 ΔE00); the white-balance picker on
   a grey patch doesn't. Lens settings without an LCC get a simpler correction, and changing their white
   balance shifts colour slightly too.
-- **New photos only.** Capture One applies a settings file only to a photo it hasn't seen yet. It's been
-  tested in sessions; catalogs haven't been tested.
+- **New photos only.** Capture One applies a settings file only to a photo it hasn't seen yet, so run
+  `prepare_folder.py` before opening or importing the folder.
 - **Phocus's defaults.** The match is to Phocus's Standard response in its default working space.
 - **Camera.** Hasselblad X2D II 100C only.
 

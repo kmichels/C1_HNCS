@@ -26,7 +26,6 @@ What's still unresolved, with what's known and how to test it. The measurements 
 - [ ] **More bodies.** The body correction has been checked on three bodies (Findings 13, 35). Raws from
   other X2D II bodies would test it further.
 - [ ] **More lens settings** for the 25V, 55V, 90V, 120 Macro and 135: each was tested at one setting only.
-- [ ] **Catalogs.** Settings files have only been tested in Capture One sessions.
 - [ ] **Real pushed photos.** On synthetic patches a push renders the same as more light in both apps
   (Finding 33); not yet checked on real pushed frames.
 - [ ] **Phocus 4.2.3.** Everything was fitted and checked on Phocus 4.2.2; blog.tonalphoto.com's latest
@@ -53,6 +52,7 @@ What's still unresolved, with what's known and how to test it. The measurements 
 | Tungsten profiles for every lens? | `auto_lens_profile.py --light tungsten` | 46 |
 | Does changing white balance in Capture One lose the lens correction's colour? | Not any more: each lens's LCC colour is built into its profiles | 47 |
 | Can the profiles carry my camera's own correction? | Yes: `bake_lcc_colour.py --body RAW` | 48 |
+| Do settings files work in catalogs? | Yes, imported referenced or copied, with Include existing adjustments (on by default) | 50 |
 | Is the 38V darker than Phocus? | By a constant 0.2 L\*, now corrected in its profiles | 32, 49 |
 | Bright yellows and saturated colours? | Kept, after fixing how the profiles fade and compress colour | 34, 37, 38 |
 | Profiles for lenses not owned? | Built from Phocus renders alone, from any raw of the lens | 26, 32, 35 |

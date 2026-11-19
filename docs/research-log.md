@@ -1952,3 +1952,27 @@ built into the 38V's profiles, removes it, and every frame scores better.
 - Why the 38V is darker isn't known. No other lens shows a consistent offset (the 28P's and 35-100's
   dL\* vary in sign from photo to photo; the other lenses have one photo each).
 - Logs: `data/logs/r24_run.txt`, `r24b_run.txt`, `r24_summary.txt`; scores in `data/val/r24/`.
+
+### Finding 50: settings files work in catalogs
+
+**In plain terms:** Everything so far was tested in Capture One sessions. Imported into a catalog, prepared
+raws get every setting from their settings files too: profile, Linear Response, exposure, white balance and
+the lens setting's LCC. They render identically to the same photos in a session, whether the files stay
+where they are or are copied into the catalog. The one condition is the import option **Include existing
+adjustments**, which was already on in a new catalog.
+
+- A new catalog (`make new document with properties {kind:catalog, …}` through AppleScript), three raws
+  (B0000919 28P, B0001059 38V, B0000633 35-100 in shade) prepared with `prepare_folder.py` in three folders
+  and imported three ways: referenced with Include existing adjustments, copied into the catalog with it,
+  and referenced without it.
+- Read back through AppleScript, the first two got exactly the settings files' values (B0000633 the 35-100
+  Shade profile, exposure, white balance 6736 K / 6.4, LCC with colour cast and uniform light on, Light
+  Falloff 0). Without the option, they got Capture One's defaults: ProStandard, the Auto curve, As Shot,
+  no LCC, Light Falloff 100.
+- Rendered at 50% (sharpening, noise reduction and distortion off) and scored against Phocus, both imports
+  match the session results exactly: B0000919 0.26, B0001059 0.31, B0000633 0.55, with the same dL\* and
+  per-radius scores.
+- In AppleScript a catalog's import settings must be set inside a `tell import settings of document` block;
+  setting them through a variable fails with "Invalid key form" (−10002), as does addressing a document by
+  name.
+- Logs: `data/logs/r25_catalog_settings.txt`, `r25_catalog_scores.txt`.
