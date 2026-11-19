@@ -84,8 +84,13 @@ for raw in a.raws:
     if a.profile:
         profile = a.profile
     wb_key = ""
-    if a.state_comp and uniform:
-        dev, kr, kb = (float(v) for v in a.state_comp.split(","))
+    comp = a.state_comp
+    if uniform and comp is None and os.path.exists(os.path.join(a.lcc_dir, f"{lcc_id}.json")):
+        import json
+        cj = json.load(open(os.path.join(a.lcc_dir, f"{lcc_id}.json")))
+        comp = f"{cj['ev']},{cj['kR']},{cj['kB']}"
+    if comp and uniform:
+        dev, kr, kb = (float(v) for v in comp.split(","))
         ev += dev
         import tifffile
         with tifffile.TiffFile(raw) as t:

@@ -75,7 +75,9 @@ Everything still open, in one place. Details for the numbered questions are belo
   `tools/c1_sidecars.py` works and Capture One honours it, but a radial falloff curve can't follow
   Phocus's elliptical correction (0.93 vs 0.54 on the 28P, 0.58 vs 0.48 on the 35-100). A full-correction LCC per
   lens setting matches pre-processing on one 28P photo once its colour offset is cancelled (Finding 40).
-  Next: calibrate that offset from flats alone, test on unseen photos, then script one LCC per map.
+  Calibrating it from flats alone (`tools/state_lcc.py`) lands within 0.01–0.11 of pre-processing on four
+  unseen photos (Finding 41). Next: make and calibrate an LCC with every map and have `c1_sidecars.py`
+  pick it by lens setting.
   Original plan: Capture One's `.cos` settings
   file stores the light-falloff curve inline (`LensLightFallOff` = radius µm, EV pairs, up to 16; then
   amount and on/off). The batch tool could write each original raw a curve made from Phocus's map for

@@ -136,6 +136,7 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `round12/eval_tables.py PAIRS_DIR LUT…` | Finding 34: score tables offline, through Capture One's camera RGB for the round-11 ladder (a probe render in `data/synth/r11/probe/`) and on real held-out pairs |
 | `round13/body_test.py KG KB` | Finding 35: Phocus's change when another body's GAIN record is swapped into the round-11 ladder, against `body_gains.py`'s prediction |
 | `c1_sidecars.py RAW… [--dest DIR]` | Finding 39: a Capture One settings file per original raw (falloff curve from its map, colour LCC, exposure), instead of a corrected copy |
+| `state_lcc.py make HOST MAP ID` / `calibrate HOST ID` | Findings 40–41: a full-correction LCC for one lens setting, made in Capture One, and its colour offset measured on flats (`data/lcc_c1/ID.json`) |
 | `round16/` | Finding 39: settings-file tests (falloff curve used? applied in raw space? LCC carried?) |
 | `round17/` | Finding 40: a full-correction LCC reference per lens setting (`make_state_lcc.py`), 2-D flat comparison (`flat_2d.py`), neutral offset of a render (`neutral_offset.py`) |
 

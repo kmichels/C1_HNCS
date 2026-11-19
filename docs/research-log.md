@@ -1556,3 +1556,40 @@ fitted to.
   - one LCC per lens setting (57 so far), made and calibrated by script.
 - Logs: `data/logs/r17_flat_state_lcc.txt`, `r17_929.txt`. The LCC files are in `data/lcc_c1/` (not
   committed: they record the camera's serial number).
+
+### Finding 41: calibrating each LCC from flats alone works on unseen photos
+
+**In plain terms:** Finding 40's last step was tuned on the photo being scored. Calibrating each
+lens-setting LCC from flat fields alone, in Capture One's own output, gets within 0.01–0.11 ΔE00 of
+pre-processing on four photos the calibration never saw, two lenses and three lens settings. So the
+settings-file route can nearly match pre-processing without copying a single raw. The cost is one LCC
+per lens setting, made and calibrated by script in Capture One.
+
+- **`tools/state_lcc.py`:**
+  - `make HOST MAP ID` builds the full-correction reference and runs Create LCC in the open session.
+  - `calibrate HOST ID` renders three L\* 60 flats through the probe: no LCC; the LCC; and the LCC with
+    a known step (white balance R and B ×1.05, +0.05 EV).
+  - Per channel, Capture One's output is locally out ∝ gain^s (s ≈ 1.06 for every channel here), so the
+    two LCC flats give s and the no-LCC flat gives the gain that cancels the offset.
+  - Saved to `data/lcc_c1/ID.json`, which `c1_sidecars.py --state-lcc ID` picks up.
+- **Calibrations** (exposure, kR, kB):
+  - 28P f/4 code 0: +0.003 EV, 1.019, 0.963. Finding 40's photo-tuned values were +0.025 EV and kB 0.968.
+  - 28P f/8 code 0: +0.001 EV, 1.020, 0.960.
+  - 35-100 35 mm f/8 code 0: −0.003 EV, 1.003, 0.983.
+- **Four photos**, whole frame against Phocus with corrections on, median ΔE00 (r 0.8–0.95 in brackets):
+
+| photo | pre-processed copy | settings, radial curve (Finding 39) | settings, calibrated LCC |
+|---|---|---|---|
+| B0000929, 28P f/4 | **0.40** (0.65) | 1.01 (1.07) | 0.51 (0.74) |
+| B0000919, 28P f/8 | **0.23** (0.15) | 0.65 (0.68) | 0.30 (0.30) |
+| B0000633, 35-100 35 mm f/8 | **0.63** (0.66) | 0.66 (0.59) | 0.64 (0.67) |
+| B0000656, 35-100 35 mm f/8 | **0.24** (0.25) | 0.66 (0.69) | 0.29 (0.32) |
+
+  The remaining near-neutral offsets are small: b\* +0.06 to +0.37, L\* −0.35 to +0.28. They're largest on
+  B0000929, as in Finding 40.
+- **To make it the default route:**
+  - make and calibrate an LCC with every map, as part of `--make-maps`;
+  - have `c1_sidecars.py` find the LCC by lens setting, with the radial curve as the fallback;
+  - give each body its profile.
+- The calibration needs the probe profile installed and Capture One open; the LCC files stay local.
+- Logs: `data/logs/r18_calibration.txt`, `r18_scores.txt`; scores in `data/val/r18/`.
