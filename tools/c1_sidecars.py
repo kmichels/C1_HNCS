@@ -38,6 +38,8 @@ ap.add_argument("--maps", default=os.path.join(FIT, "preprocess_maps"))
 ap.add_argument("--lcc-dir", default=os.path.join(HERE, "..", "data", "lcc_c1"))
 ap.add_argument("--dest", default=None, help="folder the raws will be imported from (default: each raw's own folder)")
 ap.add_argument("--force", action="store_true")
+ap.add_argument("--state-lcc", default=None, help="use this per-lens-setting LCC (data/lcc_c1/ID.lcc) with uniform light on (testing)")
+ap.add_argument("--state-comp", default=None, help="EV,kR,kB: cancel the state LCC's global offset (exposure, and R and B white-balance multipliers)")
 ap.add_argument("--profile", default=None, help="override the ICC profile file name (testing, e.g. the probe)")
 a = ap.parse_args()
 
@@ -74,12 +76,22 @@ for raw in a.raws:
     lut = next((p for p in (os.path.join(FIT, f"lut_e5_{name}.npz"), os.path.join(FIT, f"lut_e5_{name.lower()}.npz")) if os.path.exists(p)), None)
     ref_path = find_map(a.maps, ref) if ref else None
     ev = float(np.log2(global_gain(mp, ref_path, lut))) if (ref_path and lut) else 0.0
-    lcc_id = LCC_IDS.get(name)
+    lcc_id = a.state_lcc or LCC_IDS.get(name)
     lcc_file = os.path.join(a.lcc_dir, f"{lcc_id}.lcc") if lcc_id else None
     use_lcc = bool(lcc_file and os.path.exists(lcc_file))
-    profile = f"HasselbladX2DII100C-HNCS E5 {name}{' LCC' if use_lcc else ''}.icm"
+    uniform = bool(a.state_lcc and use_lcc)
+    profile = f"HasselbladX2DII100C-HNCS E5 {name}{' LCC' if use_lcc and not uniform else ''}.icm"
     if a.profile:
         profile = a.profile
+    wb_key = ""
+    if a.state_comp and uniform:
+        dev, kr, kb = (float(v) for v in a.state_comp.split(","))
+        ev += dev
+        import tifffile
+        with tifffile.TiffFile(raw) as t:
+            nn = t.pages[0].tags["AsShotNeutral"].value
+        mult = (nn[1] / nn[0] * kr, 1.0, nn[5] / nn[4] * kb)
+        wb_key = f'\t\t\t<E K="WhiteBalance" V="{mult[0]:.6f};1;{mult[2]:.6f}" />\n'
     d = os.path.join(a.dest or os.path.dirname(os.path.abspath(raw)), "CaptureOne", settings_dir())
     os.makedirs(d, exist_ok=True)
     base = os.path.basename(raw)
@@ -88,8 +100,8 @@ for raw in a.raws:
         print(f"{base}: settings file exists; skipped")
         continue
     lcc_keys = (f'\t\t\t<E K="ColorCastCorrection" V="1" />\n\t\t\t<E K="LccID" V="{lcc_id}" />\n'
-                '\t\t\t<E K="LensLCCDustRemovalEnabled" V="0" />\n\t\t\t<E K="LensLccLightFalloff" V="0" />\n'
-                '\t\t\t<E K="LensLccLightFalloffAmount" V="0" />\n') if use_lcc else ""
+                '\t\t\t<E K="LensLCCDustRemovalEnabled" V="0" />\n'
+                f'\t\t\t<E K="LensLccLightFalloff" V="{int(uniform)}" />\n\t\t\t<E K="LensLccLightFalloffAmount" V="{100 if uniform else 0}" />\n') if use_lcc else ""
     with open(path, "w") as f:
         f.write(f'''<?xml version="1.0"?>
 <IMG>
@@ -101,9 +113,9 @@ for raw in a.raws:
 		<AL>
 			<E K="FilmCurve" V="HasselbladX2DII100C-Linear Response.fcrv" />
 			<E K="ICCProfile" V="{profile}" />
-			<E K="LensLightFallOff" V="{falloff_curve(mp)}|100|1" />
+			<E K="LensLightFallOff" V="{falloff_curve(mp)}|{0 if uniform else 100}|1" />
 			<E K="Exposure" V="{ev:.4f}" />
-{lcc_keys}		</AL>
+{lcc_keys}{wb_key}		</AL>
 	</VAR>
 </IMG>
 ''')

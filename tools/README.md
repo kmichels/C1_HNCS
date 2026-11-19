@@ -137,6 +137,7 @@ AppleScript to Phocus: it triggers a macOS automation prompt.
 | `round13/body_test.py KG KB` | Finding 35: Phocus's change when another body's GAIN record is swapped into the round-11 ladder, against `body_gains.py`'s prediction |
 | `c1_sidecars.py RAW… [--dest DIR]` | Finding 39: a Capture One settings file per original raw (falloff curve from its map, colour LCC, exposure), instead of a corrected copy |
 | `round16/` | Finding 39: settings-file tests (falloff curve used? applied in raw space? LCC carried?) |
+| `round17/` | Finding 40: a full-correction LCC reference per lens setting (`make_state_lcc.py`), 2-D flat comparison (`flat_2d.py`), neutral offset of a render (`neutral_offset.py`) |
 
 `fit/synthetic/pairs/` holds every synthetic patch's Capture One camera RGB and Phocus output, and
 `fit/synthetic/flat_maps/` the flat-field gain maps, so E5 can be refitted without Phocus.

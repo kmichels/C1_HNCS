@@ -1506,3 +1506,53 @@ at the same radius.
   setting. That's one Capture One-made LCC per map (57 so far). Uniform light rescales to the frame's
   mean (the exposure key can undo that), and its response to a reference hasn't been measured; the
   colour LCC's was (mean / reference)^1.14.
+
+### Finding 40: one LCC per lens setting closes the gap, once its colour offset is cancelled
+
+**In plain terms:** Finding 39's settings files fell short because a falloff curve can only follow
+distance from the centre. An LCC can hold a full 2-D pattern, so I tried carrying Phocus's whole
+correction for one lens setting (28P at f/4, focused at infinity) in an LCC. Capture One then reproduces
+Phocus's map in 2-D to about 0.015 stop. The only catch is that an LCC shifts the overall colour
+slightly, and that has to be cancelled with white balance. On the real photo for that setting
+(B0000929) the result is 0.43 ΔE00, level with pre-processing (0.40) and better in the corners. The last
+bit of that offset was fitted on this same photo, so it still needs a check on a photo it wasn't
+fitted to.
+
+- **Uniform light switches Light Falloff off.** An LCC with uniform light on, plus a falloff curve,
+  renders as if the curve weren't there (−1.1 stop short at r 0.6). Capture One does the same when it
+  applies an LCC itself, setting falloff to 0. So the LCC has to carry the whole correction, not only
+  the non-radial part.
+- **The full-correction LCC** (`tools/round17/make_state_lcc.py MAP HOST OUT --full`).
+  - The reference is the inverse of the map, per channel, smoothed with a degree-8 polynomial
+    (rms 0.004–0.005 stop). It's applied with colour cast and uniform light on, and Light Falloff 0.
+  - On flat fields (`tools/round17/flat_2d.py`), render minus map is 0.013 / 0.017 / 0.019 stop rms for
+    R / G / B, the same at L\* 30 and 60. At r 0.6 left, right, top and bottom agree within 0.003 stop;
+    the radial curve was 0.11–0.19 stop out.
+  - The LCC's response is a plain inverse of the reference: exponent 1.
+- **Global offset.**
+  - Against an identical flat with no LCC, the LCC leaves brightness within 0.004 stop. It shifts
+    colour by R/G −2.8% and B/G +4.7% at Capture One's output, about −2.0% and +3.7% in raw terms.
+  - An apparent +0.12 stop of brightness was a scale error in `fit/c1_response.npz`'s conversion; it
+    shows on flats without an LCC too.
+  - Cancel the colour with the settings file's `WhiteBalance` multipliers: the raw's As Shot multipliers
+    times (kR, 1, kB). `c1_sidecars.py --state-lcc ID --state-comp EV,kR,kB` writes this.
+- **B0000929** (28P f/4, code 0), whole frame against Phocus with corrections on, median ΔE00:
+
+| route | median | p90 | dL\* | corners (r 0.8–0.95) |
+|---|---|---|---|---|
+| pre-processed copy | 0.40 | 1.16 | +0.05 | 0.65 |
+| settings file, radial curve + per-lens colour LCC (Finding 39) | 1.01 | 1.58 | +0.26 | 1.07 |
+| settings file, full-correction LCC, no offset cancelled | 1.95 | 2.21 | −0.69 | 1.73 |
+| … white balance from the flat (kR 1.0196, kB 0.9635) | 0.54 | 1.35 | −0.28 | 0.75 |
+| … tuned on this photo (kB 0.9684, +0.025 EV) | **0.43** | 1.31 | +0.17 | **0.54** |
+
+  The neutral offset went from b\* −2.36 (none cancelled), to +0.37 (flat-based), to +0.02 (tuned). The
+  flat-based values removed 87% of the cast. The rest probably comes from converting Capture One's
+  output back to raw through `c1_response.npz`.
+- **Still open:**
+  - a calibration that doesn't touch the photo. One option: have Capture One find the white balance
+    that makes the LCC flat match the no-LCC flat;
+  - a test on photos the calibration never saw;
+  - one LCC per lens setting (57 so far), made and calibrated by script.
+- Logs: `data/logs/r17_flat_state_lcc.txt`, `r17_929.txt`. The LCC files are in `data/lcc_c1/` (not
+  committed: they record the camera's serial number).
