@@ -6,12 +6,6 @@ What's still unresolved, with what's known and how to test it. The measurements 
 ## Work list
 
 **Accuracy**
-- [ ] **Overall brightness with the LCC route** (Finding 42). Some photos come out uniformly brighter or
-  darker than with a corrected copy of the raw: up to ±0.4 L\* on the 28P, and −0.85 L\* on the 38V frame
-  B0001059 (0.82 ΔE00, against 0.35 with a corrected copy). It doesn't follow orientation,
-  BaselineExposure or focus code. Things to test: whether the LCC calibration, measured on L\* 60 flats,
-  holds at the photo's own brightness; and whether the offset is the same for every photo of one lens
-  setting.
 - [ ] **About ±0.2 L\* per photo** remains after Phocus's per-lens-setting brightness (Finding 27). One
   candidate is the maker-note entries that can't be swapped in place.
 - [ ] **The 38V renders about 0.2 L\* darker** than Phocus on every frame (Finding 32). A lightness offset
@@ -51,7 +45,8 @@ What's still unresolved, with what's known and how to test it. The measurements 
 | Does Phocus use focus distance? | Yes, from byte 6 of maker-note 0x0018. It changes vignetting correction and centre brightness, most on the 55V and 90V; colour shading doesn't change | 31, 36 |
 | Where does Phocus's lens behaviour come from? | A 34-byte lens identity in the raw, looked up in data built into Phocus | 29, 30 |
 | Why do some photos differ in overall lightness? | Mostly Phocus's brightness per lens setting, now in the maps | 27 |
-| Can Capture One reproduce Phocus's lens correction across the frame? | Yes: an LCC per lens setting, calibrated, in a settings file per raw | 39, 40, 41, 42 |
+| Can Capture One reproduce Phocus's lens correction across the frame? | Yes: an LCC per lens setting, calibrated over the frame, in a settings file per raw | 39, 40, 41, 42, 43 |
+| Why were some photos brighter or darker with the LCC route? | Each LCC was calibrated at a centre spot where it differs from the rest of the frame | 43 |
 | Does Phocus handle highlights better? | It keeps colour where one channel clips, and Highlight Recovery rebuilds clipped channels; Capture One can't | 23, 25 |
 | Tungsten light? | Separate tungsten profiles, picked automatically below 4400 K | 21, 42 |
 | Bright yellows and saturated colours? | Kept, after fixing how the profiles fade and compress colour | 34, 37, 38 |

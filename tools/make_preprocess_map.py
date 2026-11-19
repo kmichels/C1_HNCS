@@ -106,6 +106,44 @@ def baseline_exposure(path):
     return v[0] / v[1]
 
 
+def apply_map(src, dst, map_npz, uid):
+    """Copy SRC to DST with the map's raw gains multiplied into the active area, per photosite, clipped at the
+    white level: Phocus's lens correction exactly, as a reference for calibrating an LCC (state_lcc.py)."""
+    from scipy.interpolate import RegularGridInterpolator
+    with tifffile.TiffFile(src) as t:
+        p0 = t.pages[0]
+        sp = p0.pages[0]
+        raw = sp.asarray()
+        off = sp.dataoffsets[0]
+        black, white = int(sp.tags["BlackLevel"].value[0]), int(np.min(sp.tags["WhiteLevel"].value))
+        cx0, cy0 = sp.tags["DefaultCropOrigin"].value
+        cw, ch = sp.tags["DefaultCropSize"].value
+        uid_off, uid_len = p0.tags["RawDataUniqueID"].valueoffset, p0.tags["RawDataUniqueID"].count
+    z = np.load(map_npz)
+    gain, b = z["raw_gain"].astype(np.float64), int(z["block"])
+    H, W = (int(v) for v in z["shape"])
+    scale = ch / H
+    nby, nbx = gain.shape[:2]
+    ys = cy0 + (np.arange(nby) + 0.5) * b * scale
+    xs = cx0 + (np.arange(nbx) + 0.5) * b * scale
+    out = raw.astype(np.float32)
+    for (pr, pc), c in {(0, 0): 0, (0, 1): 1, (1, 0): 1, (1, 1): 2}.items():   # RGGB from the raw origin
+        rows = np.arange(cy0 + ((pr - cy0) % 2), cy0 + ch, 2)
+        cols = np.arange(cx0 + ((pc - cx0) % 2), cx0 + cw, 2)
+        f = RegularGridInterpolator((ys, xs), gain[..., c], bounds_error=False, fill_value=None)
+        yy, xx = np.meshgrid(np.clip(rows, ys[0], ys[-1]), np.clip(cols, xs[0], xs[-1]), indexing="ij")
+        g = f(np.stack([yy.ravel(), xx.ravel()], 1)).reshape(len(rows), len(cols)).astype(np.float32)
+        out[np.ix_(rows, cols)] = (out[np.ix_(rows, cols)] - black) * g + black
+    np.minimum(out, white, out=out)
+    import shutil
+    shutil.copyfile(src, dst)
+    with open(dst, "r+b") as fh:
+        fh.seek(off)
+        fh.write(np.round(out).astype("<u2").tobytes())
+        fh.seek(uid_off)
+        fh.write(uid.encode()[:uid_len].ljust(uid_len, b"0"))
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("flat_gain"); ap.add_argument("flat_raw"); ap.add_argument("outdir")

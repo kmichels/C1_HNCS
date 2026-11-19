@@ -214,7 +214,7 @@ Response, the lens setting's LCC, exposure and white balance.
 
 | Photos not used in fitting, whole frame, median ΔE00 vs Phocus with corrections on | 28P (7) | 35-100 (16) |
 |---|---|---|
-| Profile per lens, LCC per lens setting, in a settings file | **0.59** | **0.49** |
+| Profile per lens, LCC per lens setting, in a settings file | **0.55** | **0.48** |
 | Profile per lens, one colour LCC per lens, Light Falloff 120 | 1.38 | 0.64 |
 
 A lens I don't own can get its own profile from Phocus renders alone, because Capture One turns each

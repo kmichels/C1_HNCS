@@ -1643,3 +1643,59 @@ overall than they did with pre-processing, for a reason not yet found.
   photos Capture One has already seen, and the tungsten profiles gained styles.
 - Logs: `data/logs/r19_prepare.txt`, `r19_scores.txt`, `r19_summary.txt`, `sheet_prepare.txt`,
   `sheet.txt`; scores in `data/val/r19/`.
+
+### Finding 43: calibrating each LCC over the frame removes the brightness offsets
+
+**In plain terms:** Finding 42's leftover brightness offsets came from where each LCC was calibrated, not
+from the LCC itself. Capture One's LCC follows Phocus's correction across the frame, except at a small spot
+in the very centre. The calibration measured exactly that spot, so every photo came out offset by however
+much the spot differed from the rest: darker at wide apertures, brighter on the 28P stopped down.
+Calibrating against a flat with Phocus's correction multiplied into the raw, averaged over the frame, puts
+the settings-file route within 0.01 ΔE00 of pre-processing, and the offsets are gone.
+
+- **Isolating it** (`tools/round20/lcc_brightness.py`, renders through the probe). On real photos:
+  - A WhiteBalance key equal to As Shot changes nothing (0.0000 stop on all five photos), so the key isn't
+    the cause.
+  - The LCC's effect at the frame centre (r < 0.15) is −0.019 stop on B0000939 (28P f/4), −0.016 on
+    B0000926, +0.008 and +0.007 on B0000919 and B0000916 (f/8, f/16), and −0.031 on B0001059 (38V f/2.5).
+    The calibration predicted −0.005, −0.005, −0.001, −0.001 and −0.008.
+  - On flats in B0000939's raw it's −0.005 to −0.009 at the exact centre at every level from L\* 10 to
+    80, matching the calibration. So the level isn't the cause either.
+- **The cause.** A flat with the map multiplied into the raw (what pre-processing did) against the same
+  flat through the LCC route, both in Capture One:
+
+| photo | exact centre (r < 0.02) | whole frame | r 0.1 to 0.9 | real photo vs pre-processing (Finding 42) |
+|---|---|---|---|---|
+| B0000939, 28P f/4 | +0.008 | −0.024 | −0.021 to −0.031 | about −0.028 |
+| B0000926, 28P f/4 | +0.008 | −0.024 | −0.020 to −0.029 | about −0.025 |
+| B0000919, 28P f/8 | +0.002 | +0.017 | +0.015 to +0.024 | about +0.014 |
+| B0000916, 28P f/16 | +0.002 | +0.017 | +0.012 to +0.025 | about +0.014 |
+| B0001059, 38V f/2.5 | +0.016 | −0.042 | −0.040 to −0.051 | about −0.043 |
+
+  (Green, stops. The last column converts Finding 42's dL\* difference at about 15 L\* per stop.) The
+  offset is flat from r 0.1 to the corners; only the centre spot differs.
+- **New calibration** (`state_lcc.py calibrate`): the reference flat is the map multiplied into the raw
+  (`make_preprocess_map.apply_map`), with no LCC and no Light Falloff, instead of a flat with no correction.
+  All three flats are at L\* 40 so the reference's corners don't clip at f/2.5, and they're compared over
+  r 0.05 to 0.9, not at the centre. Old calibrations are kept in `data/lcc_c1/calibration_f41/`.
+  `state_lcc.py --recalibrate ensure RAW…` redoes old ones.
+- **All 28 recalibrated.** Exposure moved +0.016 to +0.022 stop on the 28P at f/4, −0.010 to −0.015 on the
+  28P at f/5.6 to f/16, +0.037 on the 38V at f/2.5, +0.006 and +0.012 on the 35-100 at f/4, and within
+  ±0.004 elsewhere. kR and kB moved by at most 0.003.
+- **Validation**, the same 28 photos against fresh Phocus renders (mean of per-photo medians, ΔE00):
+
+| | pre-processed | Finding 42 | now |
+|---|---|---|---|
+| 28P (7): median / p90 / corners | 0.540 / 1.057 / 0.601 | 0.584 / 1.084 / 0.686 | 0.554 / 1.084 / 0.632 |
+| 28P mean \|dL\*\| | 0.06 | 0.23 | 0.06 |
+| 35-100 (16): median / p90 / corners | 0.477 / 0.956 / 0.488 | 0.495 / 0.967 / 0.504 | 0.483 / 0.962 / 0.501 |
+| Third body (5): median / p90 / corners | 0.316 / 0.824 / 0.318 | 0.334 / 0.834 / 0.344 | 0.328 / 0.830 / 0.346 |
+| All 28, median | 0.464 | 0.489 | 0.473 |
+
+  No photo is worse than pre-processing by more than 0.04. B0001059 (38V) is 0.37 with dL\* −0.21, against
+  0.35 / −0.21 pre-processed and 0.82 / −0.85 in Finding 42.
+- **Contact sheet** rebuilt: 0.27–0.74 against Capture One's default 2.95–6.29 (unchanged).
+- Still unexplained: the small spot at the centre where the LCC differs (+0.002 to +0.016 stop, inside
+  r 0.02), and about ±0.2 L\* per photo that pre-processing had too.
+- Logs: `data/logs/r20_lcc_brightness.txt`, `r20_refflats.txt`, `r20_recalibrate.txt`, `r20_validate.txt`,
+  `r20_summary.txt`, `sheet_r20.txt`; scores in `data/val/r20/val/`.

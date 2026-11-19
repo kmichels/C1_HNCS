@@ -19,7 +19,7 @@ Lens correction went through three routes before the current one:
 |---|---|
 | Light Falloff at 120 with the profile | couldn't follow Phocus's correction across apertures, or its elliptical shape |
 | A colour LCC per lens plus Light Falloff 120 (Findings 7, 10) | one LCC per lens can't follow aperture, focal length or focus distance |
-| Pre-processing: a corrected copy of each raw (Findings 22, 24, 25, 28) | the settings-file route (Findings 39 to 42) comes within about 0.03 ΔE00 of it overall, without copies |
+| Pre-processing: a corrected copy of each raw (Findings 22, 24, 25, 28) | the settings-file route (Findings 39 to 43) comes within about 0.01 ΔE00 of it overall, without copies |
 
 The plan written before any fitting is in [original-design.md](original-design.md), and the E1 to E4
 scores in [results.md](results.md).
@@ -116,6 +116,6 @@ from the 35-100, 23 from DPReview) and was scored on 17 it never saw. The frames
 Before the settings-file route, `preprocess_folder.py` wrote a corrected copy of each raw: Phocus's lens
 correction and the body's factory gains multiplied into the raw values, and a settings file so the copy
 opened with its E5 profile and Light Falloff 0. On 28 unseen photos it scored a median 0.464 ΔE00 against
-the settings-file route's 0.488 (Finding 42). It cost a full-size copy per raw and used some highlight
+the settings-file route's 0.473 (Finding 43). It cost a full-size copy per raw and used some highlight
 headroom in brightened corners, so it was removed. Its tools and the "(pre-processed)" and LCC styles are
 in the git history before Finding 42.

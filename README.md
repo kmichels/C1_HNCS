@@ -130,9 +130,9 @@ build anything:
 
 | Photos | Whole frame | Corners |
 |---|---|---|
-| 28P, 7 photos at f/4 to f/16 | 0.59 | 0.69 |
-| 35-100, 16 photos at 35 to 100 mm | 0.49 | 0.50 |
-| Another X2D II, one photo each from the 25V, 55V, 90V, 120 Macro and 135 | 0.33 | 0.34 |
+| 28P, 7 photos at f/4 to f/16 | 0.55 | 0.63 |
+| 35-100, 16 photos at 35 to 100 mm | 0.48 | 0.50 |
+| Another X2D II, one photo each from the 25V, 55V, 90V, 120 Macro and 135 | 0.33 | 0.35 |
 | For comparison: Capture One's default, on the seven photos above | 2.9 to 6.3 | |
 
 "Corners" is everything beyond 80% of the way from the centre to a corner.
@@ -144,7 +144,8 @@ build anything:
 - **White balance.** The profiles match Phocus best in daylight (about 4700 to 6300 K). Under tungsten
   light the tungsten profiles take over, for the 28P and 35-100 only. In shade and overcast light, colourful
   areas drift: about 1.3 ΔE00 at 6500 K and 2.2 at 8000 K. Mixed light hasn't been tested.
-- **Brightness.** Some photos come out brighter or darker than Phocus overall, by up to about 0.06 stop.
+- **Brightness.** Some photos come out slightly brighter or darker than Phocus overall, by up to about
+  0.5 L\* (0.03 stop).
 - **If you change white balance** in Capture One, a small colour correction that comes with the lens
   correction is replaced too, so colours shift slightly from Phocus's.
 - **New photos only.** Capture One applies a settings file only to a photo it hasn't seen yet. It's been

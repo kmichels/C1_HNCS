@@ -129,9 +129,13 @@ into its settings file for each raw before import (Findings 39 to 42):
    light on, the LCC reproduces the map in 2-D to about 0.015 stop. Phocus's correction is elliptical and
    slightly off-centre, which a radial Light Falloff curve can't follow, and uniform light turns Light
    Falloff off anyway.
-3. **Calibrate the LCC.** An LCC also shifts the overall colour a little. `state_lcc.py calibrate`
-   measures that on three flat fields in Capture One's own output (no LCC; the LCC; the LCC plus a known
-   exposure and white-balance step) and stores the exposure and red/blue factors that cancel it.
+3. **Calibrate the LCC.** An LCC also shifts the overall colour and brightness a little. `state_lcc.py
+   calibrate` measures that on three flat fields in Capture One's own output: one with the map multiplied
+   into the raw itself and no LCC, which is Phocus's correction exactly; one with the LCC; and one with the
+   LCC plus a known exposure and white-balance step. It compares them over the frame (r 0.05 to 0.9) and
+   stores the exposure and red/blue factors that cancel the difference. The comparison has to cover the
+   frame: the LCC differs from the map at a small spot in the very centre, and a calibration taken there
+   leaves the rest of the photo up to 0.04 stop off (Finding 43).
 4. **Write a settings file per raw.** `c1_sidecars.py` writes `CaptureOne/Settings<version>/<raw>.cos`
    beside each raw, before Capture One first sees it: the profile (the tungsten one below about 4400 K),
    Linear Response, the lens setting's LCC (copied beside it as `<raw>.<id>.lcc`), exposure for Phocus's
@@ -187,8 +191,7 @@ offset dominates), and reports the median ΔE00 over the frame and by distance f
   `auto_lens_profile.py` builds more from any raw of the lens.
 - **White balance.** The main profiles cover about 4700 to 6300 K, and tungsten profiles (28P and 35-100)
   about 3100 to 4200 K. Shade above 6500 K drifts (Finding 33); mixed light is untested.
-- **Overall brightness.** About ±0.2 L\* per photo is unexplained, and with the LCC some photos are up to
-  about 0.06 stop off (Finding 42).
+- **Overall brightness.** About ±0.2 L\* per photo is unexplained (up to 0.5 L\* on one photo).
 - **Highlights.** Phocus keeps colour in partly clipped highlights and its Highlight Recovery rebuilds
   clipped channels; Capture One doesn't (Finding 23). No profile can change that.
 - **Not modelled.** Phocus HDR mode, its Reproduction responses and other working spaces.
